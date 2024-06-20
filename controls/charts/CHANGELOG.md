@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+## 25.2.3 (2024-05-08)
+
+### Accumulation Chart
+
+#### Bug Fixes
+
+- `#I574491` - The right click function now works properly in the accumulation chart with the external mouse on the mac.
+
+### Chart
+
+#### Bug Fixes
+
+- `#I581265` - Now, the bar chart has been exported as a CSV file, and the CSV contains the appropriate data.
+
+## 25.1.42 (2024-04-30)
+
+### Accumulation Chart
+
+#### Bug Fixes
+
+- `#I579773` - Now, the center label remains center even when adjusting the start and end angles.
+- `#I577505` - Now, the radius specified by the mapping will render properly in the accumulation chart.
+
+## 25.1.41 (2024-04-23)
+
+### Chart
+
+#### Bug Fixes
+
+- `#I577538` - When resizing the chart, the maximum value does not change.
+- `#I578863` - Now the chart exports properly in portrait orientation.
+- `#I579386` - Now the legend renders properly using the add series method in canvas.
+- `#I577327` - Now the DateTimeCategory series is visible when clicking on the legend.
+
+## 25.1.40 (2024-04-16)
+
+### Chart
+
+#### Bug Fixes
+
+- `#I574804` - Now, the title is wrapped properly when it exits the chart in wrap mode.
+- `#I573884` - Now, all legend items with the same value in point mode will render properly.
+
 ## 25.1.39 (2024-04-09)
 
 ### Chart

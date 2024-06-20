@@ -1711,7 +1711,7 @@ export class AnnotationRenderer {
         }
         const annotation: PdfFreeTextAnnotation = new PdfFreeTextAnnotation(cropX + left, cropY + top, width, height);
         annotation.setAppearance(true);
-        if (freeTextAnnotation['author'] === null) {
+        if (isNullOrUndefined(freeTextAnnotation['author'])) {
             freeTextAnnotation['author'] = 'Guest';
         }
         annotation.author = freeTextAnnotation['author'].toString();
@@ -1766,6 +1766,7 @@ export class AnnotationRenderer {
         const lineBorder: PdfAnnotationBorder = new PdfAnnotationBorder();
         lineBorder.width = !isNullOrUndefined(freeTextAnnotation.thickness) ? freeTextAnnotation.thickness : 1;
         annotation.border = lineBorder;
+        annotation.border.width = lineBorder.width;
         if(freeTextAnnotation.hasOwnProperty('padding') && !isNullOrUndefined(freeTextAnnotation.padding)){
             const paddingValues: number = freeTextAnnotation.padding;
             // let padding: PdfPaddings = new PdfPaddings(); // PdfPaddings not exist in ej2-pdf
@@ -4049,13 +4050,44 @@ export class AnnotationRenderer {
                 JSON.parse(jsonObject['isFormFieldAnnotationsExist']))
         ) {
             const annotationPageList: any = jsonObject.annotationsPageList ? jsonObject.annotationsPageList : [];
-            // var formFieldsPageList : any = jsonObject.formFieldsPageList ? (jsonObject.formFieldsPageList) : [] ;
+            const formFieldsPageList : string = jsonObject.formFieldsPageList ? (jsonObject.formFieldsPageList) : '[]';
             if (annotationPageList.length != 0) {
                 const removeAnnotList: any = JSON.parse(annotationPageList);
                 for (let i = 0; i < removeAnnotList.length; i++) {
                     const loadedPageNo: string = removeAnnotList[parseInt(i.toString(), 10)];
                     // Removing annotations from the page.
                     const page: PdfPage = loadedDocument.getPage(parseInt(loadedPageNo, 10));
+                    const oldPageAnnotations: PdfAnnotationCollection = page.annotations;
+                    const totalAnnotation: number = parseInt(oldPageAnnotations.count.toString(), 10);
+                    for (let m: number = totalAnnotation - 1; m >= 0; m--) {
+                        const annotation: PdfAnnotation = oldPageAnnotations.at(m);
+
+                        if (
+                            annotation instanceof PdfFreeTextAnnotation ||
+                            annotation instanceof PdfInkAnnotation ||
+                            annotation instanceof PdfLineAnnotation ||
+                            annotation instanceof PdfRubberStampAnnotation ||
+                            annotation instanceof PdfTextMarkupAnnotation ||
+                            annotation instanceof PdfPopupAnnotation ||
+                            annotation instanceof PdfSquareAnnotation ||
+                            annotation instanceof PdfCircleAnnotation ||
+                            annotation instanceof PdfEllipseAnnotation ||
+                            annotation instanceof PdfPolygonAnnotation ||
+                            annotation instanceof PdfRectangleAnnotation ||
+                            annotation instanceof PdfPolyLineAnnotation
+                        ) {
+                            oldPageAnnotations.remove(annotation);
+                        }
+                    }
+
+                }
+            }
+            if (formFieldsPageList.length != 0) {
+                const removeAnnotList: any = JSON.parse(formFieldsPageList);
+                for (let i: number = 0; i < removeAnnotList.length; i++) {
+                    const loadedPageNo: string = removeAnnotList[parseInt(i.toString(), 10)];
+                    // Removing formfields from the page.
+                    const page: PdfPage = loadedDocument.getPage(parseInt(loadedPageNo, 10)-1);
                     const oldPageAnnotations: PdfAnnotationCollection = page.annotations;
                     const totalAnnotation: number = parseInt(oldPageAnnotations.count.toString(), 10);
                     for (let m: number = totalAnnotation - 1; m >= 0; m--) {

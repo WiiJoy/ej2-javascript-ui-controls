@@ -100,7 +100,7 @@
           &.e-timeline-year .e-icon-timeline-year-horizontal,
           &.e-add .e-tbar-btn-text,
           &.e-today .e-icon-day,
-          &.e-today .e-icon-today + .e-tbar-btn-text {
+          &.e-today .e-icon-today {
             display: none;
           }
 
@@ -2159,7 +2159,8 @@
         }
       }
 
-      .e-content-wrap {
+      .e-content-wrap,
+      .e-resource-column-wrap {
         &.e-transition {
           transition: all 1000ms linear; // sass-lint:disable-line no-transition-all
         }

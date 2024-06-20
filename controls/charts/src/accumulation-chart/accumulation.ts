@@ -1521,7 +1521,7 @@ export class AccumulationChart extends Component<HTMLElement> implements INotify
      * @private
      */
     public accumulationRightClick(event: MouseEvent | PointerEvent): boolean {
-        if (event.buttons === 2 || (<PointerEvent>event).pointerType === 'touch') {
+        if (event.buttons === 2 && (<PointerEvent>event).pointerType === 'touch') {
             event.preventDefault();
             event.stopPropagation();
             return false;
@@ -1950,7 +1950,7 @@ export class AccumulationChart extends Component<HTMLElement> implements INotify
         if (centerLabelSize.height * (labelCollection.length) > maxwidth) {
             ypos = this.accBaseModule.center.y + ((centerLabelSize.height + padding) / 2) - (maxwidth / 2);
         }
-        else if (series.startAngle && series.endAngle) {
+        else if ((series.startAngle && series.endAngle) && (Math.abs(series.endAngle - series.startAngle) === 180)) {
             ypos = this.accBaseModule.center.y - (centerLabelSize.height * labelCollection.length / 2) +
             ((centerLabelSize.height + padding) / 2) - this.pieSeriesModule.innerRadius / 2 + (this.pieSeriesModule.innerRadius ? padding : 0);
             if ((centerLabelSize.height * (labelCollection.length) + this.pieSeriesModule.innerRadius / 2 + padding > maxwidth)) {

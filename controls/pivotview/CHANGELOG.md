@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
-## 25.1.39 (2024-04-09)
+## 25.1.42 (2024-04-30)
+
+### Pivot Table
+
+#### Bug fixes
+
+- `#I579456` - When the load report option is not displayed in the toolbar UI, report manipulation operations will now work properly.
+
+## 25.1.41 (2024-04-23)
 
 ### Pivot Table
 
@@ -10,6 +18,13 @@
 
 - `#I496624` - Value sorting will now work properly in an OLAP pivot table with a single measure.
 - `#I547664` - Excel exporting will now work properly in the pivot table using the server-side engine.
+
+## 25.1.39 (2024-04-09)
+
+### Pivot Table
+
+#### Bug fixes
+
 - `#I572220` - The issue with persistence not working properly in the Pivot Table with remote data has been fixed.
 
 ## 25.1.38 (2024-04-02)

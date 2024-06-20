@@ -13,12 +13,13 @@ import { pasteCleanupGroupingTags } from '../../common/config';
 import { NodeSelection } from '../../selection/selection';
 import * as EVENTS from './../../common/constant';
 import { ServiceLocator } from '../services/service-locator';
-import { RenderType, UploadRequest } from '../base/enum';
+import { RenderType, ImageInputSource } from '../base/enum';
 import { DialogRenderer } from '../renderer/dialog-renderer';
 import { Uploader, MetaData, UploadingEventArgs, SelectedEventArgs, FileInfo, BeforeUploadEventArgs } from '@syncfusion/ej2-inputs';
 import * as classes from '../base/classes';
 import { IHtmlFormatterCallBack } from '../../common';
 import { sanitizeHelper, convertToBlob, getDefaultValue } from '../base/util';
+import { scrollToCursor } from '../../common/util';
 /**
  * PasteCleanup module called when pasting content in RichTextEditor
  */
@@ -424,12 +425,14 @@ export class PasteCleanup {
             popupObj.close();
         }
         this.parent.trigger(events.imageUploadFailed, e);
-        uploadObj.destroy();
+        if (uploadObj && document.body.contains(uploadObj.element) ) {
+            uploadObj.destroy();
+        }
     }
     private popupClose(popupObj: Popup, uploadObj: Uploader, imgElem: Element, e: ImageSuccessEventArgs): void {
         this.parent.inputElement.contentEditable = 'true';
         e.element = imgElem as HTMLElement;
-        e.requestType = UploadRequest.Pasted;
+        e.detectImageSource = ImageInputSource.Pasted;
         this.parent.trigger(events.imageUploadSuccess, e, (e: object) => {
             if (!isNullOrUndefined(this.parent.insertImageSettings.path)) {
                 const url: string = this.parent.insertImageSettings.path + (e as MetaData).file.name;
@@ -439,7 +442,7 @@ export class PasteCleanup {
         });
         popupObj.close();
         (imgElem as HTMLElement).style.opacity = '1';
-        if (!uploadObj.isDestroyed) {
+        if (uploadObj && document.body.contains(uploadObj.element)) {
             uploadObj.destroy();
         }
         this.toolbarEnableDisable(false);
@@ -746,6 +749,7 @@ export class PasteCleanup {
                 },
                 clipBoardElem, null, null, this.parent.enterKey
             );
+            scrollToCursor(this.parent.contentModule.getDocument(), this.parent.inputElement);
             this.removeTempClass();
             this.parent.notify(events.toolbarRefresh, {});
             this.cropImageHandler(this.parent.inputElement);
@@ -796,13 +800,13 @@ export class PasteCleanup {
     }
 
     private addTableClass(element: HTMLElement, source?: string): HTMLElement {
-        source = isNOU(source) ? '' : source;
         const tableElement : NodeListOf<HTMLElement> = element.querySelectorAll('table');
         for (let i: number = 0; i < tableElement.length; i++) {
-            if (!tableElement[i as number].classList.contains('e-rte-table') && (source === 'html' || source === '')){
-                tableElement[i as number].classList.add('e-rte-table');
-            } else if(source && source !== 'html') {
+            const isMSTeamsTable: boolean = tableElement[i as number].parentElement.nodeName === 'FIGURE';
+            if (this.parent.pasteCleanupSettings.keepFormat && source && !isMSTeamsTable) {
                 tableElement[i as number].classList.add('e-rte-paste-' + source + '-table');
+            } else if (!tableElement[i as number].classList.contains('e-rte-table')) {
+                tableElement[i as number].classList.add('e-rte-table');
             }
         }
         return element;

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 25.2.3 (2024-05-08)
+
+### Uploader
+
+#### Bug Fixes
+
+- `#I578934` - Resolved the issue where allowed extension was not properly working with preloaded files inside a form.
+
 ## 25.1.38 (2024-04-02)
 
 ### ColorPicker

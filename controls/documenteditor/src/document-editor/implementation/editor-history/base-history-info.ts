@@ -115,6 +115,10 @@ export class BaseHistoryInfo {
     /**
      * @private
      */
+    public isHyperlinkField: boolean;
+    /**
+     * @private
+     */
     public dropDownIndex: number;
     //Properties
     //gets owner control
@@ -544,6 +548,11 @@ export class BaseHistoryInfo {
             if (this.editorHistory.isUndoing) {
                 if (this.lastElementRevision && isNullOrUndefined(this.isAcceptOrReject) && deletedNodes.length > 0 && deletedNodes[0] instanceof ParagraphWidget && (deletedNodes[0] as ParagraphWidget).isEmpty()) {
                     this.endRevisionLogicalIndex = this.selectionEnd;
+                } else if (this.action === 'Delete' && this.editorHistory.currentHistoryInfo
+                    && this.editorHistory.currentHistoryInfo.action === 'RemoveHyperlink'
+                    && this.lastElementRevision instanceof FieldElementBox) {
+                    // Bug 873011: Updated the selection for delete operation on "RemoveHyperlink" undo case.
+                    this.endRevisionLogicalIndex = this.selectionEnd;
                 } else if (this.lastElementRevision && isNullOrUndefined(this.endRevisionLogicalIndex)) {
                     this.updateEndRevisionInfo();
                 } else if (this.action === 'RemoveRowTrack') {
@@ -551,7 +560,20 @@ export class BaseHistoryInfo {
                 }
             }
             if (this.action === 'ClearRevisions') {
-                this.undoRevisionForElements(insertTextPosition, endTextPosition, deletedNodes[deletedNodes.length - 1] as string);
+                // Bug 873011: Handled the separate undo revision for field begin and field end for "ClearRevisions" action on hyperlink undo.
+                let fieldBegin: FieldElementBox = sel.getHyperlinkField();
+                if (this.isHyperlinkField && !isNullOrUndefined(fieldBegin)) {
+                    let offset: number = fieldBegin.fieldSeparator.line.getOffset(fieldBegin.fieldSeparator, 1);
+                    endTextPosition.setPositionParagraph(fieldBegin.fieldSeparator.line, offset);
+                    this.undoRevisionForElements(insertTextPosition, endTextPosition, deletedNodes[deletedNodes.length - 1] as string);
+
+                    let fieldEnd: FieldElementBox = fieldBegin.fieldEnd;
+                    insertTextPosition.setPositionParagraph(fieldEnd.line, fieldEnd.line.getOffset(fieldEnd, 0));
+                    endTextPosition.setPositionParagraph(fieldEnd.line, fieldEnd.line.getOffset(fieldEnd, 1));
+                    this.undoRevisionForElements(insertTextPosition, endTextPosition, deletedNodes[deletedNodes.length - 1] as string);
+                } else {
+                    this.undoRevisionForElements(insertTextPosition, endTextPosition, deletedNodes[deletedNodes.length - 1] as string);
+                }
                 this.removedNodes.push(deletedNodes[deletedNodes.length - 1] as string);
                 deletedNodes = [];
             }
@@ -615,6 +637,11 @@ export class BaseHistoryInfo {
             this.endPosition = undefined;
             // Use this property to skip deletion if already selected content deleted case.
             let isRemoveContent: boolean = false;
+            // Use this property to delete table or cell based on history action.
+            let isDeletecell: boolean = false;
+            if (this.action === 'DeleteCells') {
+                isDeletecell = true;
+            }
             if (this.endRevisionLogicalIndex && deletedNodes.length > 0) {
                 let currentPosition: TextPosition = sel.getTextPosBasedOnLogicalIndex(this.endRevisionLogicalIndex);
                 if (this.editorHistory.isUndoing || (this.editorHistory.isRedoing && insertTextPosition.isAtSamePosition(endTextPosition))) {
@@ -626,7 +653,7 @@ export class BaseHistoryInfo {
                     this.endIndex += this.paraInclude(currentPosition);
                 }
                 if (this.editorHistory.isUndoing || (this.editorHistory.isRedoing && !this.owner.selectionModule.isEmpty && deletedNodes.length > 0)) {
-                    this.owner.editorModule.deleteSelectedContents(sel, true);
+                    this.owner.editorModule.deleteSelectedContents(sel, true, isDeletecell);
                     isRemoveContent = true;
                 }
             }
@@ -644,7 +671,27 @@ export class BaseHistoryInfo {
                             this.action !== 'ParaMarkReject' && this.action !== 'RemoveRowTrack') {
                             this.owner.editorModule.removeSelectedContents(sel);
                         } else {
-                            this.owner.editorModule.deleteSelectedContents(sel, true);
+                            // Bug 873011: Handled the separate deletion for field begin and field end for "Accept Change" action on hyperlink redo.
+                            let fieldBegin: FieldElementBox = sel.getHyperlinkField();
+                            if (this.isHyperlinkField && !isNullOrUndefined(fieldBegin)
+                                && this.editorHistory.isRedoing && this.action === 'Accept Change') {
+                                let fieldEnd: FieldElementBox = fieldBegin.fieldEnd;
+                                sel.start.setPositionParagraph(fieldBegin.line, (fieldBegin.line).getOffset(fieldBegin, 0));
+                                sel.end.setPositionParagraph(fieldBegin.fieldSeparator.line, (fieldBegin.fieldSeparator.line).getOffset(fieldBegin.fieldSeparator, 1));
+                                this.owner.editorModule.deleteSelectedContents(sel, true);
+                                if (this.editorHistory && this.editorHistory.currentBaseHistoryInfo) {
+                                    this.editorHistory.currentBaseHistoryInfo.removedNodes.reverse();
+                                }
+
+                                sel.start.setPositionParagraph(fieldEnd.line, (fieldEnd.line).getOffset(fieldEnd, 0));
+                                sel.end.setPositionParagraph(fieldEnd.line, (fieldEnd.line).getOffset(fieldEnd, 1));
+                                this.owner.editorModule.deleteSelectedContents(sel, true);
+                                if (this.editorHistory && this.editorHistory.currentBaseHistoryInfo) {
+                                    this.editorHistory.currentBaseHistoryInfo.removedNodes.reverse();
+                                }
+                            } else {
+                                this.owner.editorModule.deleteSelectedContents(sel, true);
+                            }
                         }
                         if (!isNullOrUndefined(this.editorHistory.currentHistoryInfo) &&
                             this.editorHistory.currentHistoryInfo.action === 'PageBreak' && this.documentHelper.blockToShift) {
@@ -667,12 +714,7 @@ export class BaseHistoryInfo {
             }
             let isRedoAction: boolean = (this.editorHistory.isRedoing && !isRemoveContent);
             isRemoveContent = this.lastElementRevision ? false : isRemoveContent;
-            this.revertModifiedNodes(deletedNodes, isRedoAction, isForwardSelection ? start : end, start === end);
-            // Use this property to delete table or cell based on history action.
-            let isDeletecell: boolean = false;
-            if (this.action === 'DeleteCells') {
-                isDeletecell = true;
-            }
+            this.revertModifiedNodes(deletedNodes, isRedoAction, isForwardSelection ? start : end, start === end, isForwardSelection ? end : start);
             if (isRemoveContent) {
                 this.removeContent(insertTextPosition, endTextPosition, isDeletecell);
             }
@@ -683,7 +725,7 @@ export class BaseHistoryInfo {
         if (!isNullOrUndefined(this.editorHistory.currentHistoryInfo) && (this.editorHistory.currentHistoryInfo.action === 'Reject All' || this.editorHistory.currentHistoryInfo.action === 'Accept All' || this.editorHistory.currentHistoryInfo.action === 'Paste')) {
             updateSelection = true;
         }
-        if (!this.owner.trackChangesPane.isTrackingPageBreak && ((this.editorHistory.isUndoing || this.endRevisionLogicalIndex || this.action === 'RemoveRowTrack' || updateSelection) && isNullOrUndefined(this.editorHistory.currentHistoryInfo) || updateSelection) ||
+        if (this.action !== 'TrackingPageBreak' && ((this.editorHistory.isUndoing || this.endRevisionLogicalIndex || this.action === 'RemoveRowTrack' || updateSelection) && isNullOrUndefined(this.editorHistory.currentHistoryInfo) || updateSelection) ||
             ((this.action === 'InsertRowAbove' || this.action === 'Borders' || this.action === 'InsertRowBelow' || this.action === 'InsertColumnLeft' || this.action === 'InsertColumnRight' || this.action === 'Accept Change' || this.action === 'PasteColumn' || this.action === 'PasteRow' || this.action === 'PasteOverwrite' || this.action === 'PasteNested') && (this.editorHistory.isRedoing
                 || this.editorHistory.currentHistoryInfo.action === 'Paste'))) {
             if (this.action === 'RemoveRowTrack' && this.editorHistory.isRedoing) {
@@ -866,7 +908,7 @@ export class BaseHistoryInfo {
                 break;
         }
     }
-    private revertModifiedNodes(deletedNodes: IWidget[], isRedoAction: boolean, start: string, isEmptySelection: boolean): void {
+    private revertModifiedNodes(deletedNodes: IWidget[], isRedoAction: boolean, start: string, isEmptySelection: boolean, end: string): void {
         if (isRedoAction && (this.action === 'BackSpace' || this.action === 'Delete' || this.action === 'DeleteTable'
             || this.action === 'DeleteColumn' || this.action === 'DeleteRow' || this.action === 'InsertRowAbove' ||
             this.action === 'InsertRowBelow' || this.action === 'InsertColumnLeft' || this.action === 'InsertColumnRight'
@@ -1041,16 +1083,21 @@ export class BaseHistoryInfo {
                     if (block instanceof TableWidget) {
                         block = block.combineWidget(this.viewer) as BlockWidget;
                     }
-                    this.insertRemovedNodes(deletedNodes, block);
+                    this.insertRemovedNodes(deletedNodes, block, end);
                 }
             }
         }
     }
-    private insertRemovedNodes(deletedNodes: IWidget[], block: BlockWidget): void {
+    private insertRemovedNodes(deletedNodes: IWidget[], block: BlockWidget, endIndex?: string): void {
         // Use this property to relayout whole document (after complete all insertion intead of each section insertion) when insert section (this functionality already added in insertSection API).
         let isRelayout: boolean = false;
         for (let i: number = deletedNodes.length - 1, index: number = 0; i > -1; i--) {
             let node: IWidget = deletedNodes[i];
+            if (this.isHyperlinkField && !isNullOrUndefined(endIndex) && node instanceof FieldElementBox && node.fieldType === 1) {
+                // Bug 873011: Updated the selection for field end element insertion on "Accept Change" undo case.
+                this.owner.selectionModule.start.setPositionInternal(this.owner.selectionModule.getTextPosBasedOnLogicalIndex(endIndex));
+                this.owner.selectionModule.end.setPositionInternal(this.owner.selectionModule.start);
+            }
             if (node instanceof ElementBox) {
                 this.owner.editorModule.insertInlineInSelection(this.owner.selectionModule, node as ElementBox);
             } else if (node instanceof ParagraphWidget && node.childWidgets === undefined) {
@@ -1143,7 +1190,14 @@ export class BaseHistoryInfo {
         if (this.editorHistory.isUndoing) {
             while (currentPara !== endPara) {
                 isSplittedWidget = false;
-                this.owner.editorModule.applyRevisionForCurrentPara(currentPara, startoffset, currentPara.getLength(), id, true);
+                let endOffset = 0;
+                if (!isNullOrUndefined(currentPara.previousSplitWidget)) {
+                    startoffset = (currentPara.previousSplitWidget as ParagraphWidget).getLength() + 1;
+                    endOffset = (currentPara.previousSplitWidget as ParagraphWidget).getLength() + currentPara.getLength();
+                } else {
+                    endOffset = currentPara.getLength();
+                }
+                this.owner.editorModule.applyRevisionForCurrentPara(currentPara, startoffset, endOffset, id, true);
                 //Correct the condition to get next widget instead of next widget of next splitted widget
                 currentPara = this.documentHelper.selection.getNextParagraphBlock(currentPara as BlockWidget);
                 if (!isNullOrUndefined(currentPara) && !isNullOrUndefined(currentPara.previousRenderedWidget) && currentPara.previousRenderedWidget instanceof ParagraphWidget && currentPara.previousRenderedWidget.nextSplitWidget && currentPara === endPara) {
@@ -1888,21 +1942,30 @@ export class BaseHistoryInfo {
     /**
      * @private
      */
-    public recordInsertRevisionDeletetion(widget: IWidget): void {
+    public recordInsertRevisionDeletetion(widget: IWidget, startOffset?: number, endOffset?: number): void {
+        if (this.startIndex > this.endIndex) {
+            let temp: number = this.startIndex;
+            this.startIndex = this.endIndex;
+            this.endIndex = temp;
+        }
         let startIndex: number = this.startIndex;
         let endIndex: number = this.endIndex;
         if (widget instanceof TextElementBox || widget instanceof ImageElementBox || widget instanceof FieldElementBox || widget instanceof BookmarkElementBox) {
             if (widget.revisions.length > 0) {
                 const currentStart = this.owner.selectionModule.getElementPosition(widget, true).startPosition;
+                startOffset = isNullOrUndefined(startOffset) ? 0 : startOffset;
+                endOffset = isNullOrUndefined(endOffset) ? widget.length : endOffset;
+                currentStart.setPositionParagraph(widget.line, startOffset + currentStart.offset);
                 this.startIndex = this.owner.selectionModule.getAbsolutePositionFromRelativePosition(currentStart);
-                this.endIndex = this.startIndex + widget.length;
+                this.endIndex = this.startIndex + endOffset;
                 let revision: Revision = this.owner.editorModule.retrieveRevisionInOder(widget);
                 let currentUser: string = this.owner.currentUser === '' ? 'Guest user' : this.owner.currentUser;
                 if (revision.revisionType === 'Insertion' && revision.author !== currentUser) {
                     this.revisionOperation.push(this.getFormatOperation(widget));
                 } else if (revision.revisionType === 'Insertion') {
-                    this.revisionOperation.push(this.getDeleteOperation(this.action, undefined, this.getRemovedText(widget)));
-                    endIndex -= widget.length;
+                    let operation: Operation = this.getDeleteOperation(this.action, undefined, undefined)
+                    this.revisionOperation.push(operation);
+                    endIndex -= operation.length;
                 } else if (revision.revisionType === 'Deletion') {
                     if (revision.author !== currentUser) {
                         let operation: Operation = this.getFormatOperation(widget);
@@ -1919,19 +1982,22 @@ export class BaseHistoryInfo {
                 }
             }
         } else if (widget instanceof ParagraphWidget) {
-            let isAllrevision: boolean = true;
+            let isAllRevision: boolean = true;
             for (let i: number = 0; i < widget.childWidgets.length; i++) {
                 let line: LineWidget = widget.childWidgets[i] as LineWidget;
+                if (line.children.length === 0) {
+                    isAllRevision = false;
+                }
                 for (let j: number = 0; j < line.children.length; j++) {
                     let element: ElementBox = line.children[j];
                     if (element.revisions.length <= 0) {
-                        isAllrevision = false;
+                        isAllRevision = false;
                     } else if (element.revisions[0].revisionType !== 'Insertion') {
-                        isAllrevision = false;
+                        isAllRevision = false;
                     }
                 }
             }
-            if (isAllrevision) {
+            if (isAllRevision) {
                 let position: TextPosition = new TextPosition(this.owner);
                 position.setPositionParagraph(widget.childWidgets[0] as LineWidget, 0);
                 this.startIndex = this.owner.selectionModule.getAbsolutePositionFromRelativePosition(position);
@@ -1943,6 +2009,8 @@ export class BaseHistoryInfo {
                 for (let i: number = 0; i < widget.childWidgets.length; i++) {
                     for (let j: number = 0; j < (widget.childWidgets[i] as LineWidget).children.length; j++) {
                         this.recordInsertRevisionDeletetion((widget.childWidgets[i] as LineWidget).children[j]);
+                        startIndex = this.startIndex;
+                        endIndex = this.endIndex;
                     }
                 }
             }
@@ -1950,6 +2018,7 @@ export class BaseHistoryInfo {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
     }
+
 
 
     /**
@@ -2949,7 +3018,9 @@ export class BaseHistoryInfo {
      */
     public getDeleteOperation(action: Action, setEndIndex?: boolean, text?: string): Operation {
         if (this.startIndex > this.endIndex) {
-            [this.startIndex, this.endIndex] = [this.endIndex, this.startIndex];
+            let temp: number = this.startIndex;
+            this.startIndex = this.endIndex;
+            this.endIndex = temp;
         }
         // if (action === 'Delete' && this.endIndex === this.startIndex) {
         //     this.startIndex++;
@@ -3432,7 +3503,9 @@ export class BaseHistoryInfo {
      */
     public getFormatOperation(element?: ElementBox, action?: string, skipIncrement?: boolean): Operation {
         if (this.startIndex > this.endIndex) {
-            [this.startIndex, this.endIndex] = [this.endIndex, this.startIndex];
+            let temp: number = this.startIndex;
+            this.startIndex = this.endIndex;
+            this.endIndex = temp;
         }
         let length: number = 0;
         if (this.endIndex === this.startIndex && !skipIncrement && this.action !== 'DeleteBookmark' && this.action !== 'RemoveEditRange' && this.action !== 'InsertHyperlink') {

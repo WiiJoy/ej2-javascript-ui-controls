@@ -570,9 +570,6 @@ export class Tooltip extends Component<HTMLElement> implements INotifyPropertyCh
         const collisionLeft: number = collisionPosition[0];
         const collisionTop: number = collisionPosition[1];
         const elePos: OffsetPosition = this.collisionFlipFit(target, collisionLeft, collisionTop);
-        if (!this.isBodyContainer) {
-            elePos.top -= (this.containerElement.getBoundingClientRect() as DOMRect).top;
-        }
         elePos.left = elePos.left / scalingFactors.x;
         elePos.top = elePos.top / scalingFactors.y;
         this.tooltipEle.style.display = '';
@@ -981,7 +978,8 @@ export class Tooltip extends Component<HTMLElement> implements INotifyPropertyCh
                 type: e ? e.type : null, cancel: false, target: target, event: e ? e : null,
                 element: ctrlObj.tooltipEle, isInteracted: !isNullOrUndefined(e)
             };
-            if (ctrlObj.needTemplateReposition() && !ctrlObj.mouseTrail) {
+            if (ctrlObj.needTemplateReposition() && !ctrlObj.mouseTrail && (showAnimation.effect == 'None' ||
+                ((this as any).isReact && typeof ctrlObj.content != 'string'))) {
                 ctrlObj.tooltipEle.style.display = 'none';
             }
             const observeCallback: Function = (observedArgs: TooltipEventArgs) => {
@@ -1055,9 +1053,9 @@ export class Tooltip extends Component<HTMLElement> implements INotifyPropertyCh
 
     private calculateElementPosition(pos: OffsetPosition, offsetPos: OffsetPosition): Array<number> {
         return [this.isBodyContainer ? pos.left + offsetPos.left :
-            (pos.left - this.containerElement.offsetLeft) + offsetPos.left + window.pageXOffset + this.containerElement.scrollLeft,
+            (pos.left - (this.containerElement.getBoundingClientRect()as DOMRect).left) + offsetPos.left + window.pageXOffset + this.containerElement.scrollLeft,
         this.isBodyContainer ? pos.top + offsetPos.top :
-            (pos.top - this.containerElement.offsetTop) + offsetPos.top + window.pageYOffset + this.containerElement.scrollTop];
+            (pos.top - (this.containerElement.getBoundingClientRect() as DOMRect).top) + offsetPos.top + window.pageYOffset + this.containerElement.scrollTop];
     }
 
     private collisionFlipFit(target: HTMLElement, x: number, y: number): OffsetPosition {
@@ -1106,7 +1104,8 @@ export class Tooltip extends Component<HTMLElement> implements INotifyPropertyCh
             }
         }
         const eleOffset: OffsetPosition = { left: elePos.left, top: elePos.top };
-        const position: OffsetPosition = fit(this.tooltipEle, this.checkCollideTarget(), { X: true, Y: this.windowCollision }, eleOffset);
+        const position: OffsetPosition = this.isBodyContainer ?
+            fit(this.tooltipEle, this.checkCollideTarget(), { X: true, Y: this.windowCollision }, eleOffset) : eleOffset;
         this.tooltipEle.style.display = 'block';
         const arrowEle: HTMLElement = select('.' + ARROW_TIP, this.tooltipEle) as HTMLElement;
         if (this.showTipPointer && arrowEle != null && (newpos.indexOf('Bottom') === 0 || newpos.indexOf('Top') === 0)) {
@@ -1229,7 +1228,7 @@ export class Tooltip extends Component<HTMLElement> implements INotifyPropertyCh
                 EventHandler.add(checkForTooltipElement, 'mouseleave', this.tooltipElementMouseOut, this);
             } else {
                 this.hideTooltip(this.animation.close, e, this.findTarget());
-                if (this.closeDelay === 0) { this.clear(); }
+                if (this.closeDelay === 0 && this.animation.close.effect == 'None') { this.clear(); }
             }
         } else {
             this.hideTooltip(this.animation.close, e, this.findTarget());

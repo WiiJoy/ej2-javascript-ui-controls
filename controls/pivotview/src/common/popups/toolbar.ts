@@ -627,9 +627,9 @@ export class Toolbar {
             this.action = 'Rename';
             let isExist: boolean = false;
             this.renameText = reportInput.value;
-            const reportList: DropDownList = getInstance(select('#' + this.parent.element.id + '_reportlist', this.parent.element), DropDownList) as DropDownList;
-            for (let i: number = 0; i < (reportList.dataSource as string[]).length; i++) {
-                if (reportInput.value === (reportList.dataSource as string[])[i as number]) {
+            const reports: FetchReportArgs = this.fetchReports();
+            for (let i: number = 0; i < reports.reportName.length; i++) {
+                if (reportInput.value === reports.reportName[i as number]) {
                     isExist = true;
                     break;
                 }
@@ -816,8 +816,10 @@ export class Toolbar {
                 dialog.hide();
             }
         } else if (this.action === 'Save') {
-            const reportList: DropDownList = getInstance(select('#' + this.parent.element.id + '_reportlist', this.parent.element), DropDownList) as DropDownList;
-            this.currentReport = reportList.value as string;
+            if (select('#' + this.parent.element.id + '_reportlist', this.parent.element)) {
+                const reportList: DropDownList = getInstance(select('#' + this.parent.element.id + '_reportlist', this.parent.element), DropDownList) as DropDownList;
+                this.currentReport = reportList.value as string;
+            }
             dialog.hide();
         } else if (this.action === 'Rename') {
             dialog.hide();
@@ -1091,13 +1093,13 @@ export class Toolbar {
             formattingMenu.isStringTemplate = true;
             formattingMenu.appendTo('#' + this.parent.element.id + 'formatting_menu');
         }
+        const saveArgs: SaveReportArgs = {
+            report: this.parent.getPersistData(),
+            reportName: this.parent.localeObj.getConstant('defaultReport')
+        };
+        this.currentReport = this.parent.localeObj.getConstant('defaultReport');
+        this.parent.trigger(events.saveReport, saveArgs);
         if (select('#' + this.parent.element.id + '_reportlist', this.parent.element)) {
-            const saveArgs: SaveReportArgs = {
-                report: this.parent.getPersistData(),
-                reportName: this.parent.localeObj.getConstant('defaultReport')
-            };
-            this.currentReport = this.parent.localeObj.getConstant('defaultReport');
-            this.parent.trigger(events.saveReport, saveArgs);
             const reports: FetchReportArgs = this.fetchReports();
             const reportList: DropDownList = new DropDownList({
                 dataSource: reports.reportName,
@@ -1306,18 +1308,20 @@ export class Toolbar {
         }
     }
     private updateReportList(): void {
-        const reports: FetchReportArgs = this.fetchReports();
-        const reportList: DropDownList = getInstance(select('#' + this.parent.element.id + '_reportlist', this.parent.element), DropDownList) as DropDownList;
-        reportList.dataSource = reports.reportName;
-        if (this.currentReport === '' && reportList.dataSource.length > 0) {
-            reportList.value = reportList.dataSource[reportList.dataSource.length - 1];
-            reportList.text = reportList.dataSource[reportList.dataSource.length - 1];
-            this.currentReport = reportList.dataSource[reportList.dataSource.length - 1];
-        } else {
-            reportList.value = this.currentReport;
-            reportList.text = this.currentReport;
+        if (select('#' + this.parent.element.id + '_reportlist', this.parent.element)) {
+            const reports: FetchReportArgs = this.fetchReports();
+            const reportList: DropDownList = getInstance(select('#' + this.parent.element.id + '_reportlist', this.parent.element), DropDownList) as DropDownList;
+            reportList.dataSource = reports.reportName;
+            if (this.currentReport === '' && reportList.dataSource.length > 0) {
+                reportList.value = reportList.dataSource[reportList.dataSource.length - 1];
+                reportList.text = reportList.dataSource[reportList.dataSource.length - 1];
+                this.currentReport = reportList.dataSource[reportList.dataSource.length - 1];
+            } else {
+                reportList.value = this.currentReport;
+                reportList.text = this.currentReport;
+            }
+            reportList.refresh();
         }
-        reportList.refresh();
     }
     private menuItemClick(args: ClickEventArgs): void {
         let exportArgs: BeforeExportEventArgs = {};
@@ -1789,57 +1793,68 @@ export class Toolbar {
     public destroy(): void {
         this.removeEventListener();
         let element: HTMLElement = select('#' + this.parent.element.id + '_ConfirmDialog', document);
-        const confirmPopUp: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
+        let confirmPopUp: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
         if (confirmPopUp && !confirmPopUp.isDestroyed) {
             confirmPopUp.destroy();
+            confirmPopUp = null;
         }
         element = select('#' + this.parent.element.id + 'report-dialog', document);
-        const dialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
+        let dialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
         if (dialog && !dialog.isDestroyed) {
             dialog.destroy();
+            dialog = null;
         }
         element = select('#' + this.parent.element.id + 'mdx-dialog', document);
-        const mdxDialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
+        let mdxDialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
         if (mdxDialog && !mdxDialog.isDestroyed) {
             mdxDialog.destroy();
+            mdxDialog = null;
         }
         element = select('#' + this.parent.element.id + 'chart_menu', document);
-        const chartMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
+        let chartMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
         if (chartMenu && !chartMenu.isDestroyed) {
             chartMenu.destroy();
+            chartMenu = null;
         }
         element = select('#' + this.parent.element.id + '_ChartTypeDialog', document);
-        const chartTypesDialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
+        let chartTypesDialog: Dialog = element ? getInstance(element, Dialog) as Dialog : null;
         if (chartTypesDialog && !chartTypesDialog.isDestroyed) {
             chartTypesDialog.destroy();
+            chartTypesDialog = null;
         }
         element = select('#' + this.parent.element.id + 'export_menu', document);
-        const exportMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
+        let exportMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
         if (exportMenu && !exportMenu.isDestroyed) {
             exportMenu.destroy();
+            exportMenu = null;
         }
         element = select('#' + this.parent.element.id + 'subtotal_menu', document);
-        const subTotalMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
+        let subTotalMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
         if (subTotalMenu && !subTotalMenu.isDestroyed) {
             subTotalMenu.destroy();
+            subTotalMenu = null;
         }
         element = select('#' + this.parent.element.id + 'grandtotal_menu', document);
-        const grandTotalMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
+        let grandTotalMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
         if (grandTotalMenu && !grandTotalMenu.isDestroyed) {
             grandTotalMenu.destroy();
+            grandTotalMenu = null;
         }
         element = select('#' + this.parent.element.id + 'formatting_menu', document);
-        const formattingMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
+        let formattingMenu: Menu = element ? getInstance(element, Menu) as Menu : null;
         if (formattingMenu && !formattingMenu.isDestroyed) {
             formattingMenu.destroy();
+            formattingMenu = null;
         }
         element = select('#' + this.parent.element.id + '_reportlist', document);
-        const reportList: DropDownList = element ? getInstance(element, DropDownList) as DropDownList : null;
+        let reportList: DropDownList = element ? getInstance(element, DropDownList) as DropDownList : null;
         if (reportList && !reportList.isDestroyed) {
             reportList.destroy();
+            reportList = null;
         }
         if (this.toolbar && !this.toolbar.isDestroyed) {
             this.toolbar.destroy();
+            this.toolbar = null;
         }
         element = select('#' + this.parent.element.id + 'pivot-toolbar', document);
         if (element) {

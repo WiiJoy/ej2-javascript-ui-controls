@@ -2,13 +2,43 @@
 
 ## [Unreleased]
 
-## 25.1.40 (2024-04-16)
+## 25.2.3 (2024-05-08)
+
+### Menu
+
+#### Bug Fixes
+
+- `#I582079` - The issue with "Context Menu position issue occurs when using multilevel submenus" has been resolved.
+
+## 25.1.42 (2024-04-30)
+
+### Menu
+
+#### Bug Fixes
+
+- `#F583262` - The issue with "script error thrown in Menu component when setting target and hamburger properties" has been resolved.
+
+### TreeView
+
+#### Bug fixes
+
+- `#I581340` - Fixed the console error that occurred while clicking the node after changing `isDevice` to true.
+
+## 25.1.41 (2024-04-23)
 
 ### TreeView
 
 #### Bug Fixes
 
 - `#I572876` - The issue with "The checkbox state are not read by the screen reader in the TreeView component with edge browser" has been resolved.
+
+### Carousel
+
+#### Bug Fixes
+
+- `#FB52446` - The issue with carousel slide changes during window resizing while the `loop` is set to false has been fixed.
+
+## 25.1.40 (2024-04-16)
 
 ### Stepper
 

@@ -467,7 +467,7 @@ export class Layout {
      * @private
      *  
      */
-    public reLayoutMultiColumn(section: BodyWidget, isFirstBlock: boolean): void {
+    public reLayoutMultiColumn(section: BodyWidget, isFirstBlock: boolean, blockIndex: number): void {
         this.isInitialLoad = true;
         section = section.getSplitWidgets()[0] as BodyWidget;
         this.combineMultiColumnForRelayout(section);
@@ -533,7 +533,7 @@ export class Layout {
         }
         this.addBodyWidget(this.viewer.clientActiveArea, section);
         this.clearBlockWidget(section.childWidgets, true, true, true);
-        this.reLayoutMultiColumBlock(section, nextSection);
+        this.reLayoutMultiColumnBlock(section, nextSection, blockIndex);
         this.isInitialLoad = false;
         let splitSections: Widget[] = section.getSplitWidgets();
         let lastSection: BodyWidget = splitSections[splitSections.length - 1] as BodyWidget;
@@ -586,7 +586,7 @@ export class Layout {
         }
         this.documentHelper.removeEmptyPages();
     }
-    private reLayoutMultiColumBlock(section: BodyWidget, nextSection: BodyWidget): void {
+    private reLayoutMultiColumnBlock(section: BodyWidget, nextSection: BodyWidget, blockIndex: number): void {
         let block: BlockWidget = section.firstChild as BlockWidget;
         let nextBlock: BlockWidget;
         do {
@@ -596,7 +596,7 @@ export class Layout {
             }
             if (!isNullOrUndefined(block)) {
                 this.viewer.updateClientAreaForBlock(block, true, undefined, true);
-                nextBlock = this.layoutBlock(block, 0);
+                nextBlock = this.layoutBlock(block, 0, block.index < blockIndex ? true : false);
                 this.viewer.updateClientAreaForBlock(block, false);
                 block = nextBlock;
             }
@@ -735,7 +735,12 @@ export class Layout {
                     this.clearTableWidget(block, true, true, true);
                 }
                 this.viewer.updateClientAreaForBlock(block, true);
-                this.layoutBlock(block as BlockWidget, 0);
+                let isUpdatedList: boolean = false;
+                if (block instanceof ParagraphWidget && !isNullOrUndefined(block.paragraphFormat) 
+                    && block.paragraphFormat.listFormat.listId !== -1) {
+                    isUpdatedList = block.paragraphFormat.listFormat.listLevelNumber === 0 ? true : false;
+                }
+                this.layoutBlock(block as BlockWidget, 0, isUpdatedList);
                 this.viewer.updateClientAreaForBlock(block, false);
             }
             if (nonEqualBody.columnIndex === nonEqualBody.sectionFormat.numberOfColumns - 1 || (!isNullOrUndefined(nonEqualBody.nextRenderedWidget) && nonEqualBody.sectionIndex !== (nonEqualBody.nextRenderedWidget as BodyWidget).sectionIndex)) {
@@ -769,6 +774,18 @@ export class Layout {
         } return height;
     }
 
+    private getBookmarkMargin(lineWidget: LineWidget): number {
+        let height: number = 0;
+        for (let i: number = 0; i < lineWidget.children.length; i++) {
+            let element: ElementBox = lineWidget.children[i];
+            if (!isNullOrUndefined(element.margin) && element instanceof BookmarkElementBox) {
+                height = element.margin.top + element.margin.bottom;
+                break;
+            }
+        }
+        return height;
+    }
+
     private getCountOrLine(section: BodyWidget, lineToBeSplit?: number, isSplit?: boolean, getHeight?: boolean): LineCountInfo {
         let totalNoOflines: number = 0;
         let line: LineWidget;
@@ -786,7 +803,7 @@ export class Layout {
                         let lineWidget: LineWidget = block.childWidgets[j] as LineWidget;
                         lineMargin = 0;
                         if (!isNullOrUndefined(lineWidget.margin)) {
-                            lineMargin = lineWidget.margin.top + lineWidget.margin.bottom;
+                            lineMargin = lineWidget.margin.top + lineWidget.margin.bottom + this.getBookmarkMargin(lineWidget);
                         }
                         if (!isSplit) {
                             totalNoOflines++;
@@ -4935,6 +4952,9 @@ export class Layout {
                     } else {
                         if (!previousBlock.paragraphFormat.widowControl) {
                             startIndex = (previousBlock.lastChild as LineWidget).indexInOwner;
+                            if (startIndex !== 0) {
+                                break;
+                            }
                         } else {
                             startIndex = (previousBlock.lastChild as LineWidget).indexInOwner - 1;
                             if (startIndex === 1 || startIndex < 0 ) {
@@ -9116,7 +9136,7 @@ export class Layout {
     //#region Table
 
     public layoutTable(table: TableWidget, startIndex: number): BlockWidget {
-        if (this.isFieldCode && !this.checkTableHasField(table)) {
+        if (this.isFieldCode && !this.checkTableHasField(table) && !this.isRelayout) {
             table.isFieldCodeBlock = true;
             return table;
         }
@@ -9697,7 +9717,7 @@ export class Layout {
                     block.bodyWidget.y = this.viewer.clientActiveArea.y;
                 }
                 isFirstBlock = block === block.bodyWidget.firstChild;
-                this.reLayoutMultiColumn(block.bodyWidget, isFirstBlock);
+                this.reLayoutMultiColumn(block.bodyWidget, isFirstBlock, block.index);
                 if (isNullOrUndefined(this.documentHelper.blockToShift)) {
                     return;
                 }
@@ -9720,7 +9740,7 @@ export class Layout {
                         nextBlock.bodyWidget.y = this.viewer.clientActiveArea.y;
                     }
                     isFirstBlock = nextBlock === nextBlock.bodyWidget.firstChild;
-                    this.reLayoutMultiColumn(nextBlock.bodyWidget, isFirstBlock);
+                    this.reLayoutMultiColumn(nextBlock.bodyWidget, isFirstBlock, nextBlock.index);
                     if (isNullOrUndefined(this.documentHelper.blockToShift)) {
                         return;
                     }
@@ -9851,6 +9871,9 @@ export class Layout {
                         if (!isNullOrUndefined(textElement)) {
                             const prevPageNum: string = textElement.text;
                             const paragraph: ParagraphWidget = fieldBegin.line.paragraph;
+                            if (!isNullOrUndefined(paragraph.containerWidget) && !(paragraph.containerWidget instanceof HeaderFooterWidget) && paragraph.containerWidget.indexInOwner === -1) {
+                                continue;
+                            }
                             if (!isNullOrUndefined(paragraph.bodyWidget) && !isNullOrUndefined(paragraph.bodyWidget.page) && paragraph.bodyWidget.page.index !== -1) {
                                 if (regex.test(fieldCode.toLowerCase())) {
                                     let index: number = paragraph.bodyWidget.page.index + 1;
@@ -10553,12 +10576,14 @@ export class Layout {
         } else {
             let startBlock: BlockWidget;
             let keepWithNext: boolean = false;
+            let startIndex: number = 0;
             viewer.columnLayoutArea.setColumns(previousBodyWidget.sectionFormat);
             nextBodyWidget = this.createOrGetNextBodyWidget(previousBodyWidget, this.viewer);
             let blockInfo: BlockInfo = this.alignBlockElement(paragraphWidget);
-            if (!this.isInitialLoad && !isNullOrUndefined(blockInfo.node) && !paragraphWidget.isEndsWithPageBreak && !paragraphWidget.isEndsWithColumnBreak) {
+            if (!this.isInitialLoad && !isNullOrUndefined(blockInfo.node) && !paragraphWidget.isEndsWithPageBreak && !paragraphWidget.isEndsWithColumnBreak && isNullOrUndefined(paragraphWidget.previousSplitWidget)) {
                 startBlock = blockInfo.node instanceof TableRowWidget ? this.splitRow(blockInfo.node) : blockInfo.node as BlockWidget;
                 if (startBlock.containerWidget instanceof BodyWidget && startBlock.containerWidget.firstChild !== startBlock) {
+                    startIndex = startBlock instanceof TableWidget ? 0 : parseInt(blockInfo.position.index, 10);
                     paragraphWidget = startBlock as ParagraphWidget;
                     keepWithNext = true;
                     if (!isNullOrUndefined(paragraphWidget.nextRenderedWidget) && paragraphWidget.nextRenderedWidget instanceof ParagraphWidget) {
@@ -10572,8 +10597,35 @@ export class Layout {
                 nextBodyWidget = this.moveBlocksToNextPage(paragraphWidget, true);
                 if (previousBodyWidget !== nextBodyWidget) {
                     viewer.updateClientArea(nextBodyWidget, nextBodyWidget.page);
-                    this.updateContainerWidget(paragraphWidget, nextBodyWidget, 0, true);
-                    this.addParagraphWidget(this.viewer.clientActiveArea, paragraphWidget);
+                    if (startIndex > 0 && this.keepWithNext) {
+                        this.viewer.updateClientAreaForBlock(paragraphWidget, true);
+                        let nextParagraph: ParagraphWidget;
+                        if (paragraphWidget instanceof TableWidget) {
+                            this.addTableWidget(this.viewer.clientActiveArea, [paragraphWidget]);
+                        } else if (nextBodyWidget.firstChild instanceof ParagraphWidget && nextBodyWidget.firstChild.equals(paragraphWidget)) {
+                            nextParagraph = nextBodyWidget.firstChild;
+                        } else {
+                            nextParagraph = new ParagraphWidget();
+                        }
+                        nextParagraph = this.moveChildsToParagraph(paragraphWidget, startIndex, nextParagraph);
+                        nextParagraph.containerWidget = nextBodyWidget;
+                        for (let m = 0; m < nextParagraph.floatingElements.length; m++) {
+                            const element: ShapeBase = nextParagraph.floatingElements[m];
+                            if (element.line.paragraph.bodyWidget !== paragraphWidget.bodyWidget && element.textWrappingStyle !== 'Inline') {
+                                paragraphWidget.bodyWidget.floatingElements.splice(paragraphWidget.bodyWidget.floatingElements.indexOf(element), 1);
+                            }
+                        }
+                        paragraphWidget = nextParagraph;
+                        if (nextBodyWidget.childWidgets.indexOf(paragraphWidget) === -1) {
+                            nextBodyWidget.childWidgets.splice(0, 0, paragraphWidget);
+                        }
+                        this.viewer.updateClientAreaLocation(paragraphWidget, this.viewer.clientActiveArea);
+                        this.layoutBlock(paragraphWidget, 0, true);
+                        this.viewer.updateClientAreaForBlock(paragraphWidget, false);
+                    } else {
+                        this.updateContainerWidget(paragraphWidget, nextBodyWidget, 0, true);
+                        this.addParagraphWidget(this.viewer.clientActiveArea, paragraphWidget);
+                    }
                     this.moveFootNotesToPage(footWidget, previousBodyWidget, nextBodyWidget);
                 }
                 if (previousBodyWidget.page === nextBodyWidget.page) {
@@ -10586,9 +10638,9 @@ export class Layout {
             }
         }
         if (previousBodyWidget === paragraphWidget.containerWidget) {
-            if (paragraphWidget.x !== paragraphWidget.containerWidget.x) {
-                paragraphWidget.x = paragraphWidget.containerWidget.x;
-            }
+            // if (paragraphWidget.x !== paragraphWidget.containerWidget.x) {
+            //     paragraphWidget.x = paragraphWidget.containerWidget.x;
+            // }
             paragraphWidget.y = viewer.clientActiveArea.y;
             viewer.cutFromTop(viewer.clientActiveArea.y + paragraphWidget.height);
         } else {
@@ -12519,8 +12571,7 @@ export class Layout {
                                 + (HelperMethods.convertPointToPixel(sectionFormat.pageWidth - sectionFormat.rightMargin - sectionFormat.leftMargin) - tableTotalWidth) / 2;
                         }
                     }
-
-                    if (Math.round(position.horizontalPosition) > 0) {
+                    if (Math.round(position.horizontalPosition) > 0 || (position.horizontalOrigin === 'Margin' && position.horizontalAlignment === 'Left')) {
                         this.viewer.clientActiveArea.x += HelperMethods.convertPointToPixel(position.horizontalPosition);
                     }
                 } else if (table.isInsideTable) {

@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## 25.2.3 (2024-05-08)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I51830`- Now, the form field signature does not shift upwards every time the document is saved.
+- `#I573912` - Now, the custom image signature does not appears bold when opening the saved document.
+- `#I576319` - Now, the `extractTextCompleted` event was triggered properly in client-side rendering.
+
+## 25.1.42 (2024-04-30)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I580966` - Now, the script error will not occur after deleting the stamp annotation with customized annotation selector settings.
+- `#I582426` - Now, the old JSON data will be imported in PDF Viewer without any issues.
+- `#I576350` - Now, the customer-provided document will be downloaded without any issues or script errors.
+- `#I576386` - Now, the script error will not occur after removing the `selectorLineDashArray` property.
+- `#I572623` - Now, the signature rendered properly after loading the customer-provided document in client-side rendering.
+
+## 25.1.41 (2024-04-23)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I578038` - Now, the script error will not occur after resizing the annotations for ink, stamp and signature annotations.
+- `#I558650` - Now, the customer document will get loaded without any issue or script error.
+- `#I559996` - Now, the freeText annotations are updating properly with editAnnotation method.
+- `#I573798` - Now, the form fields are properly preserved in the provided document when saving it.
+- `#I574104` - Now, the cursor position change when pressing the left and right arrow keys in the text box fields.
+- `#I572302` - Now, the form field validation event was not triggered when the Form Designer module was removed.
+
 ## 25.1.40 (2024-04-16)
 
 ### PDF Viewer
