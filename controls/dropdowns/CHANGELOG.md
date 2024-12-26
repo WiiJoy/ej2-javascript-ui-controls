@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## 28.1.36 (2024-12-24)
+
+### ListBox
+
+#### Bug Fixes
+
+- `#I664408` - Changing the type of value property of ListboxChangeEvents arguments from (number | string | boolean) to (number[] | string[] | boolean[]) in listbox.
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I665182` - The issue with skipping last child items in tree navigation in Dropdown Tree when custom filtering is applied has been resolved.
+- `#I659157`, `#I659195` - Resolved the change event incorrect argument value issue during the node selection in Dropdown Tree component.
+
+## 28.1.35 (2024-12-18)
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I660279` - The issue of being unable to close the parent Dropdown Tree using the document click action after dynamically removing the child Dropdown Tree component has been resolved.
+- `#I662309` - Issue with inconsistent selection behavior when using `selectAll` API on Dropdown Tree component initial render has been resolved.
+
+### ComboBox
+
+#### Bug Fixes
+
+- `#I660915` - Fixed an issue where an empty popup was displayed when opening the popup manually.
+
 ## 28.1.33 (2024-12-12)
 
 ### ListBox

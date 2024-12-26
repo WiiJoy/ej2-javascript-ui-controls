@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## 28.1.36 (2024-12-24)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#I647911` - Now, the display text with text wrapping functions correctly when the enter action is executed in the Rich Text Editor.
+
+- `#I664650` - Now, the font color and background color picker popup works properly in the Rich Text Editor.
+
+- `#I648421` - Now, the image shows properly when pasting from a Word document by removing the non-standard v:shapes attribute from the image element.
+
+- `#I640046` - Now, images are pasted properly without becoming blurry when copy pasting from Word and then focusing outside the Rich Text Editor.
+
+## 28.1.35 (2024-12-18)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#I658935` - Now, the `executeCommand` method works properly to replace the text wrapped inside a `<span>` element in the Rich Text Editor.
+
+- `#I660077` - Now, the emoji is inserted correctly at the cursor location, even after pressing Enter multiple times, when the `EnterKey` API is configured to use `<br>`.
+
+- `#I663039` - Now, the bullet type changes correctly without adding extra bullets when applying a bullet list without focusing on the Rich Text Editor.
+
 ## 28.1.33 (2024-12-12)
 
 ### RichTextEditor

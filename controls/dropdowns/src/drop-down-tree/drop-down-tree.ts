@@ -436,6 +436,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
     private nestedTableUpdate: { flag: boolean, fields: FieldsModel };
     private clearIconWidth: number;
     private isClicked: boolean = false;
+    private documentClickContext: EventListenerObject = this.onDocumentClick.bind(this);
     // Specifies if the checkAll method has been called
     private isCheckAllCalled: boolean = false;
     private isFromFilterChange: boolean = false;
@@ -1247,6 +1248,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                     this.treeObj.element.classList.remove('e-filtering');
                 } else if (args.preventDefaultAction) {
                     fields = args.fields;
+                    this.treeObj.element.classList.add('e-filtering');
                 } else {
                     if (this.treeDataType === 1) {
                         fields = this.selfReferencefilter(args.text, args.fields);
@@ -1476,7 +1478,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
         if (this.showSelectAll && this.checkAllParent) {
             EventHandler.remove(this.checkAllParent, 'mouseup', this.clickHandler);
         }
-        EventHandler.remove(document, 'mousedown', this.onDocumentClick);
+        document.removeEventListener('mousedown', this.documentClickContext);
     }
 
     /* Trigger when the dropdown is clicked */
@@ -2500,7 +2502,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                 if (this.treeObj.checkedNodes.length > 0 && !this.isFilterRestore) {
                     const nodes: NodeList = this.treeObj.element.querySelectorAll('li');
                     const checkedNodes: NodeList = this.treeObj.element.querySelectorAll('li[aria-checked=true]');
-                    if ((checkedNodes.length === nodes.length || this.checkSelectAll) && this.checkBoxElement) {
+                    if ((checkedNodes.length === nodes.length) && this.checkBoxElement) {
                         const wrap: HTMLElement = closest((this.checkBoxElement as HTMLElement), '.' + CHECKBOXWRAP) as HTMLElement;
                         this.changeState(wrap, 'check');
                         this.checkSelectAll = false;
@@ -2563,7 +2565,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                     this.isPopupOpen = false;
                 },
                 open: () => {
-                    EventHandler.add(document, 'mousedown', this.onDocumentClick, this);
+                    document.addEventListener('mousedown', this.documentClickContext);
                     this.isPopupOpen = true;
                 },
                 targetExitViewport: () => {

@@ -214,12 +214,12 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
 
     private dataBoundEvent(): void {
         const dataBoundEve: string = 'dataBound'; const initialRowTop: string = 'initialRowTop';
-        if (this.parent.getRows().length && !isNullOrUndefined(this.parent.getRowByIndex(0)) && !this[`${initialRowTop}`]) {
+        if (!isNullOrUndefined(this.parent.getRows()) && this.parent.getRows().length && !isNullOrUndefined(this.parent.getRowByIndex(0)) && !this[`${initialRowTop}`]) {
             const rowTop: number = this.parent.getRowByIndex(0).getBoundingClientRect().top;
             const gridTop: number = this.parent.element.getBoundingClientRect().top;
             if (rowTop > 0){
                 this[`${initialRowTop}`] = this.parent.getRowByIndex(0).getBoundingClientRect().top - gridTop;
-            } else {
+            } else if (this.parent.selectedRowIndex === -1) {
                 this[`${initialRowTop}`] = this.content.getBoundingClientRect().top -
                 this.parent.getRowByIndex(0).getBoundingClientRect().height;
             }
@@ -422,7 +422,7 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
             content = this.parent.getContent().querySelector('.e-content');
         }
         const scrollHeight: number = outBuffer * rowHeight;
-        const upScroll: boolean = (scrollArgs.offset.top - this.translateY) < 0;
+        const upScroll: boolean = (scrollArgs.offset.top - this.translateY) < 0 && this.activeKey !== 'downArrow';
         const downScroll: boolean = Math.ceil(scrollArgs.offset.top - this.translateY) + rowHeight >= scrollHeight;
         const selectedRowIndex: string = 'selectedRowIndex';
         const currentViewData: Object[] = this.parent.currentViewData; const indexValue: string = 'index';
@@ -434,7 +434,7 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
             - this.parent.pageSettings.pageSize;
             index = (index > 0) ? index : 0;
             if (!isNullOrUndefined(this[`${selectedRowIndex}`]) && this[`${selectedRowIndex}`] !== -1 && index !== this[`${selectedRowIndex}`] &&
-                ((this.parent.rowHeight * this.parent.pageSettings.pageSize) < content.scrollTop)) {
+                ((this.parent.rowHeight * this.parent.pageSettings.pageSize) < content.scrollTop) && !this.parent.allowRowDragAndDrop) {
                 index = this[`${selectedRowIndex}`];
             }
             this.startIndex = index;
@@ -446,7 +446,8 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
                 this.startIndex = (this.startIndex - remains) < 0 ? 0 : (this.startIndex - remains);
             }
             if (currentViewData.length && (currentViewData[0][`${indexValue}`] >= this.parent.pageSettings.pageSize / 2) &&
-                ((currentViewData[0][`${indexValue}`] - this.startIndex) < (this.parent.pageSettings.pageSize / 2)) && this.parent.selectionModule.isRowSelected) {
+                ((currentViewData[0][`${indexValue}`] - this.startIndex) < (this.parent.pageSettings.pageSize / 2)) &&
+                this.parent.selectionModule && this.parent.selectionModule.isRowSelected) {
                 this.startIndex = currentViewData[0][`${indexValue}`] - (this.parent.pageSettings.pageSize / 2);
                 this.endIndex = this.startIndex + this.parent.pageSettings.pageSize;
             }
@@ -466,6 +467,9 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
                         (this.endIndex - this.parent.pageSettings.pageSize) * (this.parent.rowHeight ?
                             this.parent.rowHeight : this.parent.getRowHeight()) : 0;
                 }
+                else if (this.startIndex === this[`${selectedRowIndex}`]) {
+                    this.translateY = scrollArgs.offset.top;
+                }
                 else {
                     this.translateY = (scrollArgs.offset.top - (outBuffer * rowHeight) > 0) ?
                         scrollArgs.offset.top - (outBuffer * rowHeight) + rowHeight : 0;
@@ -484,7 +488,7 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
             let nextSetResIndex: number = ~~(content.scrollTop / rowHeight);
             const isLastBlock: boolean = (this[`${selectedRowIndex}`] + this.parent.pageSettings.pageSize) < this.totalRecords ? false : true;
             if (!isNullOrUndefined(this[`${selectedRowIndex}`]) && this[`${selectedRowIndex}`] !== -1 &&
-             nextSetResIndex !== this[`${selectedRowIndex}`] && !isLastBlock) {
+             nextSetResIndex !== this[`${selectedRowIndex}`] && !isLastBlock && !this.parent.allowRowDragAndDrop) {
                 nextSetResIndex = this[`${selectedRowIndex}`];
             }
             let lastIndex: number = nextSetResIndex + this.parent.pageSettings.pageSize;
@@ -499,7 +503,8 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
                 this.startIndex = lastIndex - (this.parent.pageSettings.pageSize / 2);
             }
             if (currentViewData.length && this.startIndex > currentViewData[0][`${indexValue}`] &&
-                ((this.startIndex - currentViewData[0][`${indexValue}`]) < (this.parent.pageSettings.pageSize / 2)) && this.parent.selectionModule.isRowSelected) {
+                ((this.startIndex - currentViewData[0][`${indexValue}`]) < (this.parent.pageSettings.pageSize / 2)) &&
+                this.parent.selectionModule && this.parent.selectionModule.isRowSelected) {
                 this.startIndex = currentViewData[0][`${indexValue}`] + (this.parent.pageSettings.pageSize / 2);
             }
             if (this.parent.root.isSelfReference) {
@@ -511,7 +516,11 @@ export class VirtualTreeContentRenderer extends VirtualContentRenderer {
             } else {
                 if (this.totalRecords === this.endIndex)
                 {
-                    this.translateY = (this.totalRecords * rowHeight) - ((this.endIndex - this.startIndex) * rowHeight);
+                    if (isLastBlock) {
+                        this.translateY = (this.totalRecords * rowHeight) - (this.parent.pageSettings.pageSize * rowHeight);
+                    } else {
+                        this.translateY = (this.totalRecords * rowHeight) - ((this.endIndex - this.startIndex) * rowHeight);
+                    }
                 }
                 else
                 {

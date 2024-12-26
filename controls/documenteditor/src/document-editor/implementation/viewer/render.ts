@@ -548,6 +548,10 @@ export class Renderer {
                 this.renderPathElement(shape, shapeLeft, shapeTop);
             }
         }
+        else if(shape.fillFormat && shape.fillFormat.color && shapeType === 'Oval') {
+            this.pageContext.fillStyle = shape.fillFormat.color;
+            this.renderPathElement(shape, shapeLeft, shapeTop);
+        }
         if (!isNullOrUndefined(shapeType)) {
             if (shape.lineFormat.line && shape.lineFormat.lineFormatType !== 'None') {
                 this.pageContext.lineWidth = shape.lineFormat.weight;
@@ -1378,10 +1382,19 @@ private calculatePathBounds(data: string): Rect {
                         }
                         let widget: SelectionWidgetInfo[] = widgetInfo.get(lineWidget);
                         for (var j = 0; j < widget.length; j++) {
-                            let startX = widget[j].left - 2;
+                            let paragraph: ParagraphWidget = lineWidget.paragraph;
+                            let startX: number = 0;
+                            const firstLineIndent = HelperMethods.convertPointToPixel(paragraph.paragraphFormat.firstLineIndent);
+                            const leftIndent = HelperMethods.convertPointToPixel(paragraph.leftIndent);
+                            if (paragraph.paragraphFormat.listFormat.listId !== -1) {
+                                startX = widget[j].left - leftIndent - 2;
+                            }
+                            else {
+                                startX = widget[j].left - leftIndent - firstLineIndent - 2;
+                            }
                             let endX = widget[j].left + widget[j].width + 2;
                             if (widgetInfo.length - 1 > lineIndex) {
-                                endX = this.documentHelper.getParagraphLeftPosition(lineWidget.paragraph) + this.getContainerWidth(lineWidget.paragraph, page) + HelperMethods.convertPointToPixel(lineWidget.paragraph.paragraphFormat.borders.right.space);
+                                endX = this.documentHelper.getParagraphLeftPosition(paragraph) + this.getContainerWidth(paragraph, page) + HelperMethods.convertPointToPixel(paragraph.paragraphFormat.borders.right.space);
                             }
                             let startY = top;
                             let endY = top + lineWidget.height;
@@ -1391,36 +1404,39 @@ private calculatePathBounds(data: string): Rect {
                                 //top
                                 this.renderSingleBorder(color, startX, startY, endX, startY, 1, 'single');
                                 //bottom
-                                if (widgetInfo.length === 1 || (isNullOrUndefined(lineWidget.paragraph.nextWidget) && lineWidget === lineWidget.paragraph.lastChild)) {
+                                if (widgetInfo.length === 1 || (isNullOrUndefined(paragraph.nextWidget) && lineWidget === paragraph.lastChild)) {
                                     this.renderSingleBorder(color, startX, endY, endX, endY, 1, 'single');
                                 }
                             }
                             else if (lineWidget !== contenControl.line && lineWidget !== contenControl.reference.line) {
                                 //top
-                                if (isNullOrUndefined(lineWidget.paragraph.previousWidget) && lineWidget === lineWidget.paragraph.firstChild) {
+                                if (isNullOrUndefined(paragraph.previousWidget) && lineWidget === paragraph.firstChild) {
                                     this.renderSingleBorder(color, startX, startY, endX, startY, 1, 'single');
                                 }
-                                let widgets: SelectionWidgetInfo[] = widgetInfo.get(widgetInfo.keys[lineIndex - 1]);
-                                this.renderSingleBorder(color, startX, startY, widgets[j].left - 2, startY, 1, 'single');
+                                else if (contenControl.contentControlWidgetType !== 'Block') {
+                                    let widgets: SelectionWidgetInfo[] = widgetInfo.get(widgetInfo.keys[lineIndex - 1]);
+                                    this.renderSingleBorder(color, startX, startY, widgets[j].left - 2, startY, 1, 'single');
+                                }
                                 //bottom
-                                if (isNullOrUndefined(lineWidget.paragraph.nextWidget) && lineWidget === lineWidget.paragraph.lastChild) {
+                                if (isNullOrUndefined(paragraph.nextWidget) && lineWidget === paragraph.lastChild) {
+                                    endX = this.documentHelper.getParagraphLeftPosition(paragraph) + this.getContainerWidth(paragraph, page) + HelperMethods.convertPointToPixel(paragraph.paragraphFormat.borders.right.space);
                                     this.renderSingleBorder(color, startX, endY, endX, endY, 1, 'single');
                                 }
                             }
                             else if (lineIndex === widgetInfo.length - 1 && lineWidget === contenControl.reference.line) {
                                 //Top
                                 let widgets: SelectionWidgetInfo[] = widgetInfo.get(widgetInfo.keys[lineIndex - 1]);
-                                if (isNullOrUndefined(lineWidget.paragraph.previousWidget) && lineWidget === lineWidget.paragraph.firstChild) {
-                                    endX = this.documentHelper.getParagraphLeftPosition(lineWidget.paragraph) + this.getContainerWidth(lineWidget.paragraph, page) + HelperMethods.convertPointToPixel(lineWidget.paragraph.paragraphFormat.borders.right.space);
+                                if (isNullOrUndefined(paragraph.previousWidget) && lineWidget === paragraph.firstChild) {
+                                    endX = this.documentHelper.getParagraphLeftPosition(paragraph) + this.getContainerWidth(paragraph, page) + HelperMethods.convertPointToPixel(paragraph.paragraphFormat.borders.right.space);
                                     this.renderSingleBorder(color, startX, startY, endX, startY, 1, 'single');
                                 }
                                 else if (startX > widgets[j].left) {
                                     this.renderSingleBorder(color, widgets[j].left - 2, startY, startX, startY, 1, 'single');
                                 }
-                                let lastLine: LineWidget = lineWidget.paragraph.lastChild as LineWidget;
-                                if (!isNullOrUndefined(lastLine) && lineWidget === lastLine && lastLine.children[lastLine.children.length - 1] instanceof ContentControl  && lastLine.children[lastLine.children.length - 1] === contenControl.reference && contenControl.contentControlWidgetType === 'Block') {
+                                let lastLine: LineWidget = paragraph.lastChild as LineWidget;
+                                if (!isNullOrUndefined(lastLine) && (!isNullOrUndefined(page.nextPage) || !isNullOrUndefined(paragraph.nextWidget)) && lineWidget === lastLine && lastLine.children[lastLine.children.length - 1] instanceof ContentControl  && lastLine.children[lastLine.children.length - 1] === contenControl.reference && contenControl.contentControlWidgetType === 'Block') {
                                     //bottom
-                                    endX = this.documentHelper.getParagraphLeftPosition(lineWidget.paragraph) + this.getContainerWidth(lineWidget.paragraph, page) + HelperMethods.convertPointToPixel(lineWidget.paragraph.paragraphFormat.borders.right.space);
+                                    endX = this.documentHelper.getParagraphLeftPosition(paragraph) + this.getContainerWidth(paragraph, page) + HelperMethods.convertPointToPixel(paragraph.paragraphFormat.borders.right.space);
                                     this.renderSingleBorder(color, startX, endY, endX, endY, 1, 'single');
                                 }
                                 else {
@@ -1429,9 +1445,9 @@ private calculatePathBounds(data: string): Rect {
                                     //top
                                     if (widgetInfo.length > 1) {
                                         let widgets: SelectionWidgetInfo[] = widgetInfo.get(widgetInfo.keys[lineIndex - 1]);
-                                        let endUpdated = this.documentHelper.getParagraphLeftPosition(lineWidget.paragraph) + this.getContainerWidth(lineWidget.paragraph, page) + HelperMethods.convertPointToPixel(lineWidget.paragraph.paragraphFormat.borders.right.space);
+                                        let endUpdated = this.documentHelper.getParagraphLeftPosition(paragraph) + this.getContainerWidth(paragraph, page) + HelperMethods.convertPointToPixel(paragraph.paragraphFormat.borders.right.space);
                                         this.renderSingleBorder(color, endX, startY, endUpdated, startY, 1, 'single');
-                                        if (startX < widgets[j].left - 2) {
+                                        if (startX < widgets[j].left - 2  && contenControl.contentControlWidgetType !== 'Block') {
                                             this.renderSingleBorder(color, widgets[j].left - 2, startY, startX, startY, 1, 'single');
                                         }
                                     }
@@ -2748,6 +2764,10 @@ private calculatePathBounds(data: string): Rect {
         let isClipped: boolean = false;
         let containerWid: Widget = elementBox.line.paragraph.containerWidget;
         let isHeightType: boolean = false;
+        const imgX: number = this.getScaledValue(left + leftMargin, 1);
+        const imgY: number = this.getScaledValue(top + topMargin, 2);
+        const width: number = this.getScaledValue(elementBox.width);
+        const height: number = this.getScaledValue(elementBox.height);
         if (containerWid instanceof TableCellWidget) {
             isHeightType = ((containerWid as TableCellWidget).ownerRow.rowFormat.heightType === 'Exactly');
         }
@@ -2776,16 +2796,23 @@ private calculatePathBounds(data: string): Rect {
             }
         }
         if (elementBox.isMetaFile && !isNullOrUndefined(elementBox.metaFileImageString)) {
-            this.pageContext.drawImage(elementBox.element, this.getScaledValue(left + leftMargin, 1),
-                this.getScaledValue(top + topMargin, 2), this.getScaledValue(elementBox.width),
-                this.getScaledValue(elementBox.height));
+            if (!elementBox.isCrop) {
+                this.pageContext.drawImage(elementBox.element, imgX, imgY, width, height);
+            } else {
+                this.pageContext.drawImage(elementBox.element,
+                    elementBox.cropX,
+                    elementBox.cropY,
+                    elementBox.cropWidth,
+                    elementBox.cropHeight,
+                    imgX,
+                    imgY,
+                    width,
+                    height
+                );
+            }
         } else {
             const fallbackImage: string = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAgVBMVEX///8AAADgAADY2Njl5eVcXFxjY2NZWVl/f3+wsLCmpqb4+PiioqKpqam7u7vV1dX2uLj2wsLhFRXzpKT3vb30sbHhCwv74+P40dH+9vbkIyO2trbBwcHLy8tsbGycnJz529v4zMzrbGzlLS3qZmblNzfrdXXoRkbvi4vvgYHlHh7CZsBOAAADpUlEQVR4nO3da1faQBSF4ekAUQlUEFs14AXxVv7/D6yaQiZx5mSEYXF2ut+PNKzyyK5diYDmR9czx34AB49C/CjE759w3jvvWr15Tdgz3atXE54f++EcIArxoxA/CvGjED8K8aMQPwrxoxA/CvGLEeZ9jPJdhfk4GyCUjb3ECGE/Q6m/q3DwfudjP0ERZYN9hKdn2hvd3+0jHJz5/kBVuTk96bbQUEjhYR9ckiikUH8UUqg/CinUH4UU6o9CCvVHIYX6o5BC/VFIof4opFB/FFKoPwop1B+FFOqPQgrjyxfjVC38Lxk9tnAxGqZqdKtSOE4GHA5/fuNJpDCtcNHbv4VqYYqPLjgfUViPQgrjozA2CptRSGF8/59w+Wrt+rr1btNna1cPzg0wwuXavncxabnX7PfHYYXzlYARvlobQZyUR9mXm+1NMEK7SSLONgcVV9vb8IQXv4J3KSeKKlxXxNCzONkeYp8AV3p9UT1+P3FWHVAsq5thhGZSEb1DrSZq7dS5HUdoLiuBZ6jORG3tCwAkNJfCUJ2Jrqe1P0ESCkMNTdSACYNDDU7UoAkDQw1P1MAJvUMVJmrwhJ6hShM1gMIvQxUnahCFjaHKEzWQQneoxR95ogZTWBuqPFEDKnSHKk/UoArdoYoTNbDC5lBDEzW4QjMpYiZqgIXG/S76JhwHK5zVVipcnkIVuv/RW/HyFKhwYhuFr6NiCmdNoDBUSGFjovJQEYXuRN9ahwoorJ8uSZenPsMTNk+X2q6jwgm/ntHL11HhhL4zenmoYEL/Gb04VCxh6KKTNFQoYfiikzBUJKF00Sk8VCChfF00OFQcYdt10dBQYYRT5xn0n9G7Q0X8GfCzNNEyZ6iPgD/HlydaVg11DfhajJaJlm2HugIUrlomWrYZKuJKHz6vHhbSM/hROdRnxNe1meuXYvW0DB6+aflYrB7dlzDiCM3N1dVN6GDhMCDhjlHYjEIK46MwNgqbUUhhfJ/vA07wO8N1vw94ONo/3e/lTpVOYfc/UyG//ZmqW52fi/FuTNW3/lZ+eguF+qOQQv1RSKH+KKRQfxRSqD8KKdQfhRTqj0IK9UchhfqjkEL9UUih/iikUH8UUqg/CmXh6Hsv3jlK+wnvD/vgkrSHMMuyu1P9ZdmuwnycDQYn+svG3n9KEUKT9zHyf6+IEWJHIX4U4kchfhTiRyF+FOJHIX4U4kchfnVhijeZa6sunCf4ZdPamteEHY5C/CjEr/vCv0ec0g+AtS1QAAAAAElFTkSuQmCC';
             try {
-                const imgX: number = this.getScaledValue(left + leftMargin, 1);
-                const imgY: number = this.getScaledValue(top + topMargin, 2);
-                const width: number = this.getScaledValue(elementBox.width);
-                const height: number = this.getScaledValue(elementBox.height);
                 const render: Renderer = this;
                 elementBox.element.onload = (): void => {
                     const lastLoaded: string | null = elementBox.element.getAttribute("lastLoaded");

@@ -217,12 +217,18 @@ export class Tooltip {
                 tooltipPositionX = tooltipPositionX + 10;
                 args.element.style.left = tooltipPositionX + 'px';
             }
-            if (window.innerHeight < args.element.offsetHeight + tooltipPositionY) {
-                tooltipPositionY = tooltipPositionY - args.element.offsetHeight - 10;
+            if ((args.event as any).clientY > args.element.offsetHeight) {
+                if (window.innerHeight < args.element.offsetHeight + tooltipPositionY) {
+                    tooltipPositionY = tooltipPositionY - args.element.offsetHeight - 10;
+                }
+                if ((topEnd < (tooltipPositionY + args.element.offsetHeight + 20))) {
+                    tooltipPositionY = tooltipPositionY - args.element.offsetHeight - 10;
+                }
+                else {
+                    tooltipPositionY = tooltipPositionY + 10;
+                }
             }
-            if ((topEnd < (tooltipPositionY + args.element.offsetHeight + 20))) {
-                tooltipPositionY = tooltipPositionY - args.element.offsetHeight - 10;
-            } else {
+            else {
                 tooltipPositionY = tooltipPositionY + 10;
             }
             args.element.style.top = tooltipPositionY + 'px';

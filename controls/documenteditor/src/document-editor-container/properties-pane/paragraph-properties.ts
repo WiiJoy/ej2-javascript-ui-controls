@@ -755,12 +755,6 @@ export class Paragraph {
     }
     private selectStyleValue(args: any): void {
         if (this.container) {
-            let treeViewResult: HTMLElement = document.getElementById(this.documentEditor.containerId + '_treeDiv');
-            if (!isNullOrUndefined(treeViewResult) && !isNullOrUndefined(this.documentEditor.optionsPaneModule) && this.documentEditor.optionsPaneModule.isOptionsPaneShow) {
-                treeViewResult.innerHTML = '';
-                this.documentEditor.optionsPaneModule.data = this.documentEditor.optionsPaneModule.dataForTreeview();
-                this.documentEditor.optionsPaneModule.initHeadingTab();
-            }
             if (this.isRetrieving || !args.isInteracted) {
                 return;
             }
@@ -775,7 +769,7 @@ export class Paragraph {
             if (!isNullOrUndefined(this.documentEditor.documentHelper.styles.findByName(styleName))) {
                 this.documentEditor.editorModule.applyStyle(styleName, true);
                 let treeViewResult: HTMLElement = document.getElementById(this.documentEditor.containerId + '_treeDiv');
-                if (!isNullOrUndefined(treeViewResult) && !isNullOrUndefined(this.documentEditor.optionsPaneModule) && this.documentEditor.optionsPaneModule.isOptionsPaneShow) {
+                if (!isNullOrUndefined(treeViewResult) && !isNullOrUndefined(this.documentEditor.optionsPaneModule) && this.documentEditor.optionsPaneModule.isOptionsPaneShow && this.documentEditor.optionsPaneModule.isHeadingTab) {
                     treeViewResult.innerHTML = '';
                     this.documentEditor.optionsPaneModule.data = this.documentEditor.optionsPaneModule.dataForTreeview();
                     this.documentEditor.optionsPaneModule.initHeadingTab();

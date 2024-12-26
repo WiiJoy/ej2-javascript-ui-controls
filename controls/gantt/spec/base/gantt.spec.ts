@@ -4946,3 +4946,402 @@ describe('Check work for parent resource', () => {
         }
     });
 });
+describe('CR-924995 dst coverage', () => {        
+    let ganttObj: Gantt;
+    let resource1 = [
+        {
+            TaskID: 5,
+            TaskName: 'Project estimation', StartDate: new Date('03/29/2024'), EndDate: new Date('04/21/2024'),
+            subtasks: [
+                {
+                    TaskID: 6, TaskName: 'Develop floor plan for estimation', StartDate: new Date('03/29/2024'),
+                    Duration: 3, Progress: 30, resources: [{ resourceId: 2, resourceUnit: 70 }], Predecessor: '3FS+2', work: 30
+                },
+                {
+                    TaskID: 7, TaskName: 'List materials', StartDate: new Date('04/08/2024'), Duration: 12,
+                    resources: [{ resourceId: 6, resourceUnit: 40 }], Progress: 30, work: 40
+                },
+                {
+                    TaskID: 8, TaskName: 'Estimation approval', StartDate: new Date('04/03/2024'),
+                    Duration: 10, resources: [{ resourceId: 5, resourceUnit: 75 }], Progress: 30, work: 60,
+                },
+                {
+                    TaskID: 9, TaskName: 'Excavate for foundations', StartDate: new Date('04/01/2024'),
+                    Duration: 4, Progress: 30, resources: [{ resourceId: 4, resourceUnit: 100 }], work: 32
+                },
+                {
+                    TaskID: 10, TaskName: 'Install plumbing grounds', StartDate: new Date('04/08/2024'), Duration: 4,
+                    Progress: 30, Predecessor: '9SS', resources: [{ resourceId: 3, resourceUnit: 100 }], work: 32
+                },
+                {
+                    TaskID: 11, TaskName: 'Dig footer', StartDate: new Date('04/08/2024'),
+                    Duration: 3, resources: [{ resourceId: 2, resourceUnit: 100 }], work: 24
+                },
+                {
+                    TaskID: 12, TaskName: 'Electrical utilities', StartDate: new Date('04/03/2024'),
+                    Duration: 4, Progress: 30, resources: [{ resourceId: 3, resourceUnit: 100 }], work: 32
+                }
+            ]
+        },
+        {
+            TaskID: 13, TaskName: 'Sign contract', StartDate: new Date('04/04/2024'), Duration: 2,
+            Progress: 30,
+        }
+    ];
+    let resourceCollection1 = [   
+        { resourceId: 4, resourceName: 'Fuller King', resourceGroup: 'Development Team' },
+        { resourceId: 5, resourceName: 'Davolio Fuller', resourceGroup: 'Approval Team' },
+        { resourceId: 6, resourceName: 'Van Jack', resourceGroup: 'Development Team' }
+    ];
+    beforeAll((done: Function) => {
+        (window as any).myCustomFormatter = function (date:any, format:any, tier:any, mode:any) {
+            if (tier === 'topTier') {
+                return 'Week ' + Math.ceil(date.getDate() / 7); // Simple week number
+            } else if (tier === 'bottomTier') {
+                return date.getDate().toString(); // Return the day of the month
+            }
+            return date.toDateString(); // Fallback
+        };        
+        ganttObj = createGantt({
+            dataSource: resource1,
+        resources: resourceCollection1,
+        viewType: 'ResourceView',
+        showOverAllocation: true,
+        taskFields: {
+            id: 'TaskID',
+            name: 'TaskName',
+            startDate: 'StartDate',
+            endDate: 'EndDate',
+            duration: 'Duration',
+            progress: 'Progress',
+            dependency: 'Predecessor',
+            resourceInfo: 'resources',
+            work: 'work',
+            child: 'subtasks'
+        },
+        taskType: 'FixedWork',
+        resourceFields: {
+            id: 'resourceId',
+            name: 'resourceName',
+            unit: 'resourceUnit',
+            group: 'resourceGroup'
+        },
+        editSettings: {
+            allowAdding: true,
+            allowEditing: true,
+            allowDeleting: true,
+            allowTaskbarEditing: true,
+            showDeleteConfirmDialog: true
+        },
+        columns: [
+            { field: 'TaskID', visible: false },
+            { field: 'TaskName', headerText: 'Name', width: 250 },
+            { field: 'work', headerText: 'Work' },
+            { field: 'Progress' },
+            { field: 'resourceGroup', headerText: 'Group' },
+            { field: 'StartDate' },
+            { field: 'Duration' },
+        ],
+        toolbar: ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
+            { text: 'Show/Hide Overallocation', tooltipText: 'Show/Hide Overallocation', id: 'showhidebar' }],
+        labelSettings: {
+            rightLabel: 'resources',
+            taskLabel: 'Progress'
+        },
+        splitterSettings: {
+            columnIndex: 3
+        },
+        allowResizing: true,
+        allowSelection: true,
+        highlightWeekends: true,
+        treeColumnIndex: 1,
+        height: '450px',
+        timelineSettings: {
+            showTooltip: true,
+            topTier: {
+                unit: 'Week',
+                formatter: 'myCustomFormatter'
+            },
+            bottomTier: {
+                unit: 'Day',
+                count: 1
+            }
+        },
+        projectStartDate: new Date('03/28/2024'),
+        projectEndDate: new Date('05/18/2024')
+        }, done);
+    });
+    it('Check work value', () => {
+        expect(ganttObj.flatData[0].ganttProperties.work).toBe(32);
+    });
+    afterAll(() => {
+        if (ganttObj) {
+            destroyGantt(ganttObj);
+        }
+        delete (window as any).myCustomFormatter;
+    });
+});
+describe('CR-924995 dst coverage', () => {        
+    let ganttObj: Gantt;
+    beforeAll((done: Function) => {
+        ganttObj = createGantt({
+            dataSource: [],
+        taskFields: {
+            id: 'TaskID',
+            name: 'TaskName',
+            startDate: 'StartDate',
+            endDate: 'EndDate',
+            duration: 'Duration',
+            progress: 'Progress',
+            dependency: 'Predecessor',
+            child: 'subtasks'
+        },
+        editSettings: {
+            allowAdding: true,
+            allowEditing: true,
+            allowDeleting: true,
+            allowTaskbarEditing: true,
+            showDeleteConfirmDialog: true
+        },
+        columns: [
+            { field: 'TaskID', visible: false },
+            { field: 'TaskName', headerText: 'Name', width: 250 },
+            { field: 'work', headerText: 'Work' },
+            { field: 'Progress' },
+            { field: 'resourceGroup', headerText: 'Group' },
+            { field: 'StartDate' },
+            { field: 'Duration' },
+        ],
+        toolbar: ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
+            { text: 'Show/Hide Overallocation', tooltipText: 'Show/Hide Overallocation', id: 'showhidebar' }],
+        splitterSettings: {
+            columnIndex: 3
+        },
+        allowResizing: true,
+        allowSelection: true,
+        highlightWeekends: true,
+        treeColumnIndex: 1,
+        height: '450px',
+        timelineSettings: {
+            showTooltip: true,
+            topTier: {
+                unit: 'Week'
+            },
+            bottomTier: {
+                unit: 'Day',
+                count: 1
+            }
+        },
+        projectStartDate: new Date('2024-01-01T00:00:00'),
+        projectEndDate: new Date('2024-01-02T00:00:00')
+        }, done);
+    });
+    it('Check work value', () => {
+        expect(ganttObj.timelineModule['validateCount']('Month',5,'bottomTier')).toBe(1);
+        expect(ganttObj.timelineModule['validateCount']('Week',5,'bottomTier')).toBe(1);
+    });
+    afterAll(() => {
+        if (ganttObj) {
+            destroyGantt(ganttObj);
+        }
+    });
+});
+describe('Check baseline width for day mode', () => {        
+    let ganttObj: Gantt;
+    let morphUTCDateStringToLocalDate = (date: any) => {
+        const initialDate = new Date(date);
+        console.log('initialDate', initialDate);
+        const actual = new Date(
+          initialDate.getUTCFullYear(),
+          initialDate.getUTCMonth(),
+          initialDate.getUTCDate(),
+          initialDate.getUTCHours(),
+          initialDate.getUTCMinutes()
+        );
+        console.log('Actual', actual);
+        return actual;
+      };
+    let GanttData= [
+        {
+          id: '1',
+          duration: 0.1,
+          name: '0.1 task 1',
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T08:48:00Z'),
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T08:48:00Z'),
+        },
+        {
+          id: '2',
+          duration: 0.2,
+          name: '0.2 task',
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T09:36:00Z'),
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T09:36:00Z'),
+        },
+        {
+          id: '3',
+          duration: 0.3,
+          name: '0.3 task',
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T10:24:00Z'),
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T10:24:00Z'),
+        },
+        {
+          id: '4',
+          duration: 0.4,
+          name: '0.4 task',
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T11:12:00Z'),
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T11:12:00Z'),
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+        },
+        {
+          id: '5',
+          duration: 0.5,
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T12:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T12:00:00Z'),
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          name: '0.5 task',
+        },
+        {
+          id: '6',
+          duration: 0.6,
+          name: '0.6 task',
+          targetfinish: morphUTCDateStringToLocalDate('2024-11-25T13:48:00Z'),
+          targetstart: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentstartdate: morphUTCDateStringToLocalDate('2024-11-25T08:00:00Z'),
+          currentfinishdate: morphUTCDateStringToLocalDate('2024-11-25T13:48:00Z'),
+        },
+      ];
+    beforeAll((done: Function) => {
+        ganttObj = createGantt({
+            dataSource: (GanttData),
+  taskFields: {
+    id: 'id',
+    name: 'name',
+    startDate: 'currentstartdate',
+    endDate: 'currentfinishdate',
+    baselineStartDate: 'targetstart',
+    baselineEndDate: 'targetfinish',
+    duration: 'duration',
+  },
+  renderBaseline: true,
+  editSettings: {
+    allowAdding: true,
+    allowEditing: true,
+    allowDeleting: true,
+    allowTaskbarEditing: true,
+    showDeleteConfirmDialog: true,
+  },
+  enableContextMenu: true,
+  resourceFields: {
+    id: 'resourceId',
+    name: 'resourceName',
+    unit: 'Unit',
+  },
+  workUnit: 'Hour',
+  taskType: 'FixedDuration',
+  toolbar: [
+    'Add',
+    'Edit',
+    'Update',
+    'Delete',
+    'Cancel',
+    'ExpandAll',
+    'CollapseAll',
+    'Refresh',
+    'ZoomIn',
+  ],
+  allowSelection: true,
+  height: '450px',
+  treeColumnIndex: 1,
+  columns: [
+    { field: 'TaskID', visible: false },
+    { field: 'TaskName', headerText: 'Task Name', width: '180' },
+    {
+      field: 'StartDate',
+      headerText: 'Start Date',
+    },
+    {
+      field: 'EndDate',
+      headerText: 'End Date',
+    },
+    { field: 'resources', headerText: 'Resources', width: '160' },
+    { field: 'Work', width: '110' },
+    { field: 'Duration', width: '100' },
+    { field: 'taskType', headerText: 'Task Type', width: '110' },
+  ],
+        }, done);
+    });
+    it('Check baseline width value', () => {
+        expect(ganttObj.flatData[0].ganttProperties.baselineWidth).toBe(3.3000000000000003);
+    });
+    afterAll(() => {
+        if (ganttObj) {
+            destroyGantt(ganttObj);
+        }
+    });
+});
+describe('Check left for a task', () => {        
+    let ganttObj: Gantt;
+    let GanttData= [
+        {
+            TaskID: 1,
+            TaskName: 'Product Concept',
+            StartDate: new Date('03/31/2024'),
+            EndDate: new Date('04/21/2024')
+        }]
+    beforeAll((done: Function) => {
+        ganttObj = createGantt({
+            dataSource: (GanttData),
+            taskFields: {
+                id: 'TaskID',
+                name: 'TaskName',
+                startDate: 'StartDate',
+                duration: 'Duration',
+                progress: 'Progress',
+                dependency: 'Predecessor',
+                child: 'subtasks'
+            },
+            splitterSettings: {
+                columnIndex: 1
+            },
+            treeColumnIndex: 1,
+            allowSelection: true,
+            showColumnMenu: false,
+            timelineSettings: {
+                topTier: {
+                    unit: 'Day',
+                },
+                timelineUnitSize: 200,
+            },
+            labelSettings: {
+                leftLabel: 'TaskName',
+                taskLabel: 'Progress'
+            },
+            columns: [
+                { field: 'TaskID', headerText: 'Task ID', visible: false },
+                { field: 'TaskName', headerText: 'Task Name', width: 300 },
+                { field: 'StartDate', headerText: 'Start Date' },
+                { field: 'Duration', headerText: 'Duration' },
+                { field: 'Progress', headerText: 'Progress' },
+            ],
+            height: '550px',
+            allowUnscheduledTasks: true,
+            projectStartDate: new Date('03/31/2024'),
+            projectEndDate: new Date('04/23/2024'),
+        }, done);
+    });
+    it('check left for a task', () => {
+        expect(ganttObj.currentViewData[0].ganttProperties.left).toBe(200);
+    });
+    afterAll(() => {
+        if (ganttObj) {
+            destroyGantt(ganttObj);
+        }
+    });
+});

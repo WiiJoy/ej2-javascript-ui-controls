@@ -45,14 +45,14 @@ export class DragAndDrop extends ActionBase {
     private isPreventMultiDrag: boolean = false;
     private slotsUptoCursor: number = -1;
     private eleTop: number = 0;
+    private distanceUptoCursor: number = 0;
 
     public wireDragEvent(element: HTMLElement): void {
-        const isVerticalView: boolean = ['Day', 'Week', 'WorkWeek'].indexOf(this.parent.currentView) > -1;
         new Draggable(element, {
             abort: '.' + cls.EVENT_RESIZE_CLASS,
             clone: true,
             isDragScroll: true,
-            enableTailMode: (this.parent.eventDragArea || isVerticalView) ? true : false,
+            enableTailMode: this.parent.eventDragArea ? true : false,
             cursorAt: (this.parent.eventDragArea) ? { left: -20, top: -20 } : { left: 0, top: 0 },
             dragArea: this.dragArea,
             dragStart: this.dragStart.bind(this),
@@ -77,8 +77,12 @@ export class DragAndDrop extends ActionBase {
         }
         this.setDragActionDefaultValues();
         this.actionObj.element = e.element as HTMLElement;
-        this.eleTop = parseFloat(this.actionObj.element.style.top);
-        this.slotsUptoCursor = -1;
+        if (e.sender && ['Day', 'Week', 'WorkWeek'].indexOf(this.parent.currentView) > -1) {
+            const eventArgs: (MouseEvent & TouchEvent) | Touch = this.parent.eventBase.getPageCoordinates(e.sender);
+            this.distanceUptoCursor = eventArgs.clientY - this.actionObj.element.getBoundingClientRect().top;
+            this.eleTop = parseFloat(this.actionObj.element.style.top);
+            this.slotsUptoCursor = -1;
+        }
         this.actionObj.action = 'drag';
         let elements: Element[] = [];
         if (!this.parent.allowMultiDrag || isNullOrUndefined(this.parent.selectedElements) || this.parent.selectedElements.length === 0 ||
@@ -154,11 +158,11 @@ export class DragAndDrop extends ActionBase {
             let top: number = parseInt(<string>e.top, 10);
             top = top < 0 ? 0 : top;
             if (this.slotsUptoCursor < 0) {
-                const cellsCountUptoCursor: number = Math.floor(top / cellHeight);
+                const cellsCountUptoCursor: number = Math.floor((this.eleTop + this.distanceUptoCursor) / cellHeight);
                 const cellsCountUptoEleTop: number = Math.floor(this.eleTop / cellHeight);
                 this.slotsUptoCursor = cellsCountUptoCursor - cellsCountUptoEleTop;
             }
-            top = (Math.floor((top + 1) / cellHeight) - this.slotsUptoCursor) * cellHeight;
+            top = (Math.floor((top + this.distanceUptoCursor + 1) / cellHeight) - this.slotsUptoCursor) * cellHeight;
             topValue = formatUnit(top < 0 ? 0 : top);
             const scrollHeight: number = this.parent.element.querySelector('.e-content-wrap').scrollHeight;
             const cloneBottom: number = parseInt(topValue, 10) + this.actionObj.clone.offsetHeight;
@@ -246,7 +250,9 @@ export class DragAndDrop extends ActionBase {
                     rows[rows.length - 1].option !== 'Date';
                 this.isTimelineDayProcess = !this.parent.activeViewOptions.timeScale.enable || this.isHeaderRows ||
                     this.parent.currentView === 'TimelineMonth' || (rows.length > 0 && rows[rows.length - 1].option === 'Date');
-                this.isStepDragging = !this.isTimelineDayProcess && (this.actionObj.slotInterval !== this.actionObj.interval);
+                this.isAllDayDrag = !this.isTimelineDayProcess && eventObj[this.parent.eventFields.isAllDay];
+                this.isStepDragging = !this.isTimelineDayProcess && !this.isAllDayDrag &&
+                    (this.actionObj.slotInterval !== this.actionObj.interval);
                 if (this.isTimelineDayProcess) {
                     this.timelineEventModule = new TimelineEvent(this.parent, 'day');
                 } else {
@@ -317,9 +323,11 @@ export class DragAndDrop extends ActionBase {
         this.heightUptoCursorPoint = (this.heightUptoCursorPoint === 0) ?
             Math.ceil((Math.abs(this.actionObj.clone.getBoundingClientRect().top - this.actionObj.Y) / this.heightPerMinute)) *
             this.heightPerMinute : this.heightUptoCursorPoint;
-        this.isAllDayDrag = (this.parent.activeViewOptions.timeScale.enable) ?
-            this.actionObj.clone.classList.contains(cls.ALLDAY_APPOINTMENT_CLASS) :
-            this.actionObj.event[this.parent.eventFields.isAllDay] as boolean;
+        if (['Day', 'Week', 'WorkWeek'].indexOf(this.parent.currentView) > -1) {
+            this.isAllDayDrag = (this.parent.activeViewOptions.timeScale.enable) ?
+                this.actionObj.clone.classList.contains(cls.ALLDAY_APPOINTMENT_CLASS) :
+                this.actionObj.event[this.parent.eventFields.isAllDay] as boolean;
+        }
         if (this.isStepDragging && this.minDiff === 0) {
             this.calculateMinutesDiff(eventObj);
         }
@@ -1084,6 +1092,7 @@ export class DragAndDrop extends ActionBase {
         index = index < 0 ? 0 : index;
         let eventStart: Date = this.isHeaderRows ? new Date(this.timelineEventModule.dateRender[parseInt(index.toString(), 10)].getTime()) :
             this.parent.getDateFromElement(<HTMLElement>tr.children[parseInt(index.toString(), 10)]);
+        eventStart = this.isAllDayDrag ? util.resetTime(eventStart) : eventStart;
         if (this.isStepDragging) {
             const widthDiff: number = this.getWidthDiff(tr, index);
             if (widthDiff !== 0) {
@@ -1105,22 +1114,22 @@ export class DragAndDrop extends ActionBase {
                 eventStart = this.actionObj.start;
             }
         } else {
-            if (this.isCursorAhead || cursorDrag) {
-                const minutes: number = this.isTimelineDayProcess ? MINUTES_PER_DAY : this.actionObj.slotInterval;
+            if ((this.isCursorAhead || cursorDrag) && !this.isAllDayDrag) {
+                const minutes: number = this.isTimelineDayProcess || this.isAllDayDrag ? MINUTES_PER_DAY : this.actionObj.slotInterval;
                 eventStart.setMinutes(eventStart.getMinutes() + minutes);
                 eventStart.setMilliseconds(-(eventDuration));
                 if (eventStart.getTime() === util.resetTime(eventStart).getTime() && eventStart.getMinutes() === 0 && eventDuration === 0) {
                     eventStart.setMinutes(-minutes);
                 }
             } else {
-                eventStart.setMinutes(eventStart.getMinutes() -
-                    (this.cursorPointIndex * (this.isTimelineDayProcess ? MINUTES_PER_DAY : this.actionObj.slotInterval)));
+                eventStart.setMinutes(eventStart.getMinutes() - (this.cursorPointIndex *
+                    (this.isTimelineDayProcess || this.isAllDayDrag ? MINUTES_PER_DAY : this.actionObj.slotInterval)));
             }
         }
         if (!this.isStepDragging) {
             eventStart = this.calculateIntervalTime(eventStart);
         }
-        if (this.isTimelineDayProcess) {
+        if (this.isTimelineDayProcess || this.isAllDayDrag) {
             const eventSrt: Date = eventObj[this.parent.eventFields.startTime] as Date;
             eventStart.setHours(eventSrt.getHours(), eventSrt.getMinutes(), eventSrt.getSeconds());
         }
@@ -1256,12 +1265,13 @@ export class DragAndDrop extends ActionBase {
         const td: HTMLElement = (<HTMLElement>closest(e.target as Element, '.e-work-cells'));
         if (!isNullOrUndefined(td) && !this.isMorePopupOpened) {
             let targetDate: Date = this.parent.getDateFromElement(td);
+            targetDate = this.isAllDayDrag ? util.resetTime(targetDate) : targetDate;
             if (this.isHeaderRows) {
                 const currentIndex: number = Math.floor(left / this.actionObj.cellWidth);
                 targetDate = new Date(this.timelineEventModule.dateRender[currentIndex + index].getTime());
             }
             const timeDiff: number = targetDate.getTime() - (event[this.parent.eventFields.startTime] as Date).getTime();
-            if (this.isTimelineDayProcess) {
+            if (this.isTimelineDayProcess || this.isAllDayDrag) {
                 this.cursorPointIndex = Math.abs(Math.ceil(timeDiff / (util.MS_PER_DAY)));
             } else {
                 const widthDiff: number =

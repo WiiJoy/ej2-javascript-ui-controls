@@ -457,6 +457,13 @@ export interface IGrid extends Component<HTMLElement> {
      */
     isVirtualAdaptive?: boolean;
 
+    /**
+     * @hidden
+     * `isColumnMenuFilterClosing`used to handle the closing of the column menu filter on esc key.
+     * @default false
+     */
+    isColumnMenuFilterClosing?: boolean;
+
 
     /**
      * @hidden
@@ -1053,6 +1060,8 @@ export interface NotifyArgs {
     count?: number;
     /** Defines the request type. */
     requestType?: Action;
+    /** Defines the target. */
+    target?: HTMLElement;
     /** Defines the module. */
     module?: string;
     /** Defines the enable property. */
@@ -3144,4 +3153,12 @@ export interface ItemTemplateArgs {
 export interface DistributeColWidth {
     columns?: Column[];
     usedWidth?: number;
+}
+
+/**
+ * @hidden
+ */
+export interface RefreshToolbarItemsArgs {
+    editSettings?: EditSettingsModel;
+    name?: string;
 }

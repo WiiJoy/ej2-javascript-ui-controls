@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## 28.1.36 (2024-12-24)
+
+### Grid
+
+#### Bug fixes
+
+- `I660080` - The issue where export options were not disabled when properties were set to false has been resolved.
+- `I657741` - Escape key does not function correctly for column menu filtering when the type is set to `Menu` has been resolved.
+- `#FB31658` - The issue of white space appearing during full downward scroll and the occurrence of repeated data with incorrect blocks during slow upward scrolling in virtual scrolling has been resolved.
+- `#I659372` - Fixed an issue where the Select All checkbox would automatically get checked after scrolling and selecting the last record when virtual scrolling was enabled.
+- `#I663580` - The issue with the cell save functionality not working properly on pressing the Enter key when collapsing rows has been resolved.
+- `#I662005` - Fixed an issue where the `pageSize` setting did not work as expected after updating rules using the `QueryBuilder`.
+- `#I660641` - Fixed an issue where the Checkbox Filter dialog was cut off when rendering the grid inside an `Accordion component`, with `filter.type` set to `CheckBox` and `filterSettings.type` set to `Menu`.
+- `#I665951` - Resolved an issue where frozen columns with `ColumnVirtualization` caused a blank space.
+- `#I664685` - The script error that occurred when collapsing all records and then deleting the last record has been fixed.
+
+## 28.1.35 (2024-12-18)
+
+### Grid
+
+#### Bug fixes
+
+- `#I659877` - Fixed the issue where the `getSelectedRecords` method retained previous selections when virtual scrolling was enabled.
+- `#I660588` - The issue of a script error occurring while searching for data after clearing the sorting in the hierarchy grid has been resolved.
+- `#I660594` - The problem of the vertical scrollbar disappearing when frozen rows are enabled in the responsive grid has been resolved.
+- `#F195226` - The issue of being unable to navigate to the `editTemplate` with the keyboard while adding a record has been resolved.
+- `#I656905` - Fixed an issue where clearing filters in the grid with custom page sizes displayed all records on one page.
+
 ## 28.1.33 (2024-12-12)
 
 ### Grid

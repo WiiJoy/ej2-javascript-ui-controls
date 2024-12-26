@@ -58,7 +58,8 @@ export class Filter implements IAction {
         openDialog: Function, closeDialog: Function, destroy: Function
         isresetFocus: boolean, getFilterUIInfo: Function, clearCustomFilter: Function,
         closeResponsiveDialog: Function, applyCustomFilter: Function, renderCheckBoxMenu?: Function,
-        afterRenderFilterUI?: Function, checkBoxBase: CheckBoxFilterBase, excelFilterBase: ExcelFilterBase
+        afterRenderFilterUI?: Function, checkBoxBase: CheckBoxFilterBase, excelFilterBase: ExcelFilterBase,
+        isDialogOpen?: boolean
     };
     /** @hidden */
     public filterOperators: IFilterOperator = {
@@ -1006,8 +1007,13 @@ export class Filter implements IAction {
         }
 
         if (e.action === 'escape' && this.filterSettings.type === 'Menu' && this.filterModule) {
+            if (this.parent.showColumnMenu && this.filterModule.isDialogOpen) {
+                this.parent.isColumnMenuFilterClosing = true;
+            }
             this.filterModule.closeDialog();
-            gObj.notify(events.restoreFocus, {});
+            if (!this.parent.showColumnMenu) {
+                gObj.notify(events.restoreFocus, {});
+            }
         }
     }
 

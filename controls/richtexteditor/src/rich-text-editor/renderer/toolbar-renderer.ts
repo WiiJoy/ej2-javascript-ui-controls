@@ -457,7 +457,9 @@ export class ToolbarRenderer implements IRenderer {
                     args.cancel = true;
                     return;
                 }
-                proxy.parent.notify(events.selectionRestore, {});
+                if (Browser.info.name === 'safari') {
+                    proxy.parent.notify(events.selectionRestore, {});
+                }
                 const element: HTMLElement = (args.event) ? (args.event.target as HTMLElement) : null;
                 proxy.currentElement = dropDown.element;
                 proxy.currentDropdown = dropDown;
@@ -485,10 +487,14 @@ export class ToolbarRenderer implements IRenderer {
         args.element.tabIndex = -1;
         dropDown.element.removeAttribute('type');
         dropDown.element.onmousedown = (): void => {
-            proxy.parent.notify(events.selectionSave, {});
+            if (Browser.info.name === 'safari') {
+                proxy.parent.notify(events.selectionSave, {});
+            }
         };
         dropDown.element.onkeydown = (): void => {
-            proxy.parent.notify(events.selectionSave, {});
+            if (Browser.info.name === 'safari') {
+                proxy.parent.notify(events.selectionSave, {});
+            }
         };
         return dropDown;
     }
@@ -660,11 +666,10 @@ export class ToolbarRenderer implements IRenderer {
             enableRtl: this.parent.enableRtl,
             inline: true,
             value: null,
-            cssClass : ((item === 'backgroundcolor') ? CLS_BACKGROUND_COLOR_PICKER : CLS_FONT_COLOR_PICKER) + ' ' + args.cssClass + ' ' + 'e-rte-picker-init',
+            cssClass : ((item === 'backgroundcolor') ? CLS_BACKGROUND_COLOR_PICKER : CLS_FONT_COLOR_PICKER) + ' ' + args.cssClass,
             created: () => {
                 const value: string = (item === 'backgroundcolor') ? proxy.parent.backgroundColor.default : proxy.parent.fontColor.default;
-                const cssClass: string = ((item === 'backgroundcolor') ? CLS_BACKGROUND_COLOR_PICKER : CLS_FONT_COLOR_PICKER) + ' ' + args.cssClass;
-                colorPicker.setProperties({ value: value, cssClass: cssClass });
+                colorPicker.setProperties({ value: value });
             },
             mode: ((item === 'backgroundcolor') ? proxy.parent.backgroundColor.mode : proxy.parent.fontColor.mode),
             modeSwitcher: ((item === 'backgroundcolor') ? proxy.parent.backgroundColor.modeSwitcher : proxy.parent.fontColor.modeSwitcher),

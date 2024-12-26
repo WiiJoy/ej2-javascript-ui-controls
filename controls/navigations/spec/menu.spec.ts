@@ -993,5 +993,55 @@ describe('Menu', () => {
              expect(menu.items[2].continent).toEqual('Bars');
              expect(menu.items[2].text).toEqual('Bars');
          });
+
+        it('coverage Improvement', () => {
+            appendStyles('#menu { height: 400px; } .e-menu-wrapper { height: 250px; } #cookbooks-menu-popup.e-menu-popup{ height: 200px; } #cookbooks-menu-popup.e-menu-popup .e-ul{ height: 250px; }');
+            document.body.appendChild(ul);
+            menu = new Menu({ items: items, enableScrolling: true, animationSettings: { effect: 'None' } }, '#menu');
+            const wrap: HTMLElement = menu.getWrapper();
+            const li: HTMLElement = ul.children[1] as HTMLElement;
+            triggerMouseEvent(li, 'mouseover');
+        });
     });
+
+    describe('Menu KeyBoardHandler with Scrolling', () => {
+        afterEach(() => {
+            menu.destroy();
+        });
+    
+        it('should handle enter key on scroll navigation', () => {
+            document.body.appendChild(ul);
+            const items: MenuItemModel[] = [
+                { text: 'File', id: 'file' },
+                { text: 'Edit', id: 'edit' },
+                { text: 'View', id: 'view' }
+            ];
+            menu = new Menu({ items: items, enableScrolling: true }, '#menu');
+            // Assume the scroll navigation button is active
+            const scrollNav: HTMLElement = createElement('div', { className: 'e-scroll-nav e-right-nav' });
+            ul.parentElement.insertBefore(scrollNav, ul);
+
+            const keyEventArgs: any = {
+                preventDefault: (): void => { /** NO Code */ },
+                action: 'enter',
+                keyCode: 13,
+                target: scrollNav,
+                altKey: false,
+                charCode: 0,
+                code: '',
+                ctrlKey: false,
+                key: 'Enter',
+                location: 0,
+                metaKey: false,
+                repeat: false,
+                shiftKey: false,
+                which: 13
+            };
+
+            (keyEventArgs as any).target = scrollNav;
+            (menu as any).keyBoardHandler(keyEventArgs);
+        });
+    });
+
+    
 });

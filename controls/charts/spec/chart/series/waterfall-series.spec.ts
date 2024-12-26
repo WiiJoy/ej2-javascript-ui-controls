@@ -1091,7 +1091,7 @@ describe('Waterfall Series', () => {
             loaded = (args: Object): void => {
                 let series: HTMLElement = document.getElementById('container_Series_0_Connector_');
                 let d: string = series.getAttribute('d');
-                expect(d).toBe('M 18.31875000000001 371.5 L 314.43125 371.5 M 184.69374999999997 371.5 L 341.06874999999997 371.5 M 490.80625000000003 148.6 L 507.44374999999997 148.6 ');
+                expect(d).toBe('M 158.05624999999998 371.5 L 174.69375000000002 371.5 M 324.43125000000003 371.5 L 341.06874999999997 371.5 M 490.80625000000003 148.6 L 507.44374999999997 148.6 ');
                 done();
             };
             chart.loaded = loaded;
@@ -1101,7 +1101,7 @@ describe('Waterfall Series', () => {
             loaded = (args: Object): void => {
                 let series: HTMLElement = document.getElementById('container_Series_0_Connector_');
                 let d: string = series.getAttribute('d');
-                expect(d).toBe('M 18.31875000000001 371.5 L 314.43125 371.5 M 184.69374999999997 371.5 L 341.06874999999997 371.5 M 490.80625000000003 148.6 L 507.44374999999997 148.6 ');
+                expect(d).toBe('M 158.05624999999998 371.5 L 174.69375000000002 371.5 M 324.43125000000003 371.5 L 341.06874999999997 371.5 M 490.80625000000003 148.6 L 507.44374999999997 148.6 ');
                 done();
             };
             chart.series[0].marker.visible=true;
@@ -1112,7 +1112,7 @@ describe('Waterfall Series', () => {
             loaded = (args: Object): void => {
                 let series: HTMLElement = document.getElementById('container_Series_0_Connector_');
                 let d: string = series.getAttribute('d');
-                expect(d).toBe('M 507.44374999999997 371.5 L 490.80625000000003 371.5 M 341.06874999999997 371.5 L 324.43125000000003 371.5 M 174.69374999999997 148.6 L 158.05625000000003 148.6 ');
+                expect(d).toBe('M 647.1812500000001 371.5 L 351.06874999999997 371.5 M 480.80625000000003 371.5 L 324.43125000000003 371.5 M 174.69374999999997 148.6 L 158.05625000000003 148.6 ');
                 done();
             };
             chart.primaryXAxis.isInversed=true;
@@ -1142,6 +1142,88 @@ describe('Waterfall Series', () => {
             chart.loaded = loaded;
             chart.refresh();
         });   
+    });
+    describe('Checking waterfall series with intermediate sum and sum index', () => {
+        let chart: Chart;
+        let loaded: EmitType<ILoadedEventArgs>;
+        let element: HTMLElement;
+        element = createElement('div', { id: 'container' });
+        beforeAll(() => {
+            document.body.appendChild(element);
+            chart = new Chart(
+                {
+                    primaryXAxis: {
+                        valueType: 'Category',
+                        majorGridLines: { width: 0 },
+                        plotOffset: 20
+                    },
+                    //Initializing Primary Y Axis
+                    primaryYAxis: {
+                        minimum: 0, maximum: 1250, interval: 250,
+                        majorGridLines: { width: 1 }, lineStyle: { width: 0 }, majorTickLines: { width: 0 },
+                        minorTickLines: { width: 0 },
+                        title: 'USD',
+                        labelFormat: "{value}K"
+                    },
+                    //Initializing Chart Series
+                    series: [{
+                        dataSource: [{ x: 'Income', y: 4711 },
+                        { x: 'Sales', y: -1015 },
+                        { x: 'Development', y: -688 },
+                        { x: 'Revenue', y: 1030 },
+                        { x: 'Balance', y: -100 },
+                        { x: 'Administrative' },
+                        { x: 'Expense', y: -361 },
+                        { x: 'Tax' },
+                        { x: 'maxim', y: -2000 },
+                        { x: 'maxi2', y: 200 },
+                        { x: 'Net Profit', y: 0 },],
+                        width: 2, negativeFillColor: '#e56590',
+                        xName: 'x', yName: 'y', intermediateSumIndexes: [], sumIndexes: [5,7,10],
+                        columnWidth: 0.9,
+                        type: 'Waterfall', animation: { enable: true },
+                        marker: {
+                            dataLabel: { visible: true, font: { color: '#ffffff' } }
+                        }, connector: { color: '#5F6A6A', width: 2 }
+                    }],
+                    chartArea: { border: { width: 0 } },
+                    title: 'Company Revenue and Profit',
+                    legendSettings: { visible: false },
+                    width: '100%',
+                });
+            chart.appendTo('#container');
+        });
+
+        afterAll((): void => {
+            chart.destroy();
+            element.remove();
+        });
+        it('Checking with intermediate sum index as empty', (done: Function) => {
+            loaded = (args: ILoadedEventArgs): void => {
+                let point: number = args.chart.visibleSeries[0].points[10].y as number;
+                expect(point).toBe(1777);
+                done();
+            };
+            chart.loaded = loaded;
+            chart.refresh();
+        });
+        it('Checking with intermediate sum index', (done: Function) => {
+            loaded = (args: ILoadedEventArgs): void => {
+                let point: number = args.chart.visibleSeries[0].points[8].y as number;
+                expect(point).toBe(2897);
+                done();
+            };
+            chart.loaded = loaded;
+            chart.series[0].dataSource = [  { x: 'Income', y: 4711 }, { x: 'Sales', y: -1015 },
+                { x: 'Development', y: -688 },
+                { x: 'Revenue', y: 1030 }, {x: 'Balance'},
+                { x: 'Administrative', y: -780 },
+                { x: 'Expense', y: -361 }, { x: 'Tax', y: -695 },
+                { x: 'Net Profit'}];
+            chart.series[0].sumIndexes = [8];
+            chart.series[0].intermediateSumIndexes = [4, 7];
+            chart.refresh();
+        });
     });
     it('memory leak', () => {
         profile.sample();

@@ -1053,6 +1053,7 @@ export class AnnotationRenderer {
                 const appearance: PdfTemplate = rubberStampAnnotation.appearance.normal;
                 const dictionary: _PdfDictionary = new _PdfDictionary(page._crossReference);
                 const state: PdfGraphicsState = appearance.graphics.save();
+                appearance.graphics.setTransparency(opacity);
                 const template: PdfTemplate = new PdfTemplate(stampAnnotation.template, dictionary._crossReference);
                 template._isExported = true;
                 template._appearance = stampAnnotation.template;
@@ -1071,6 +1072,7 @@ export class AnnotationRenderer {
                     bitmap = new PdfBitmap(bytes);
                     const appearance: PdfTemplate = rubberStampAnnotation.appearance.normal;
                     const state: PdfGraphicsState = appearance.graphics.save();
+                    appearance.graphics.setTransparency(opacity);
                     appearance.graphics.drawImage(bitmap, 0, 0, width, height);
                     appearance.graphics.restore(state);
                 }
@@ -2248,7 +2250,7 @@ export class AnnotationRenderer {
             cropValues.x = 0;
             cropValues.y = 0;
         }
-        const pageHeight: number = page._size[1];
+        const pageHeight: number = page.size[1];
         const pointList: number[] = [];
         for (let index: number = 0; index < points.length; index++) {
             const x: number = this.convertPixelToPoint(points[parseInt(index.toString(), 10)].x) + cropValues.x;

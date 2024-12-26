@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## 28.1.36 (2024-12-24)
+
+### Chart
+
+#### Bug Fixes
+
+- `#I665246` - Now, the chart point click and double-click events are working properly in the waterfall chart.
+- `#I662191` - Now, zooming is restricted for the mouse wheel, similar to selection zoom.
+- `#I666272` - Now, the y-axis range is set properly for the waterfall series.
+- `#I666317` - The exceptions that occurred during React Jest testing have been resolved.
+
+## 28.1.35 (2024-12-18)
+
+### Chart
+
+#### Bug Fixes
+
+- `#I662154` - Axis labels are now rendered correctly in the exported PDF, even when headers and footers are included.
+- `#I662546` - Tooltip highlighting functions correctly when the column series width is specified using `columnWidthInPixel`.
+- `#I662277` - The intermediate sum index is no longer included in the calculation of the sum index.
+- `#I663653` - Data labels are now rendered correctly when the intermediate sum index is empty.
+- `#I663652` - The calculations for both sum and intermediate sum indexes have been corrected.
+
 ## 28.1.33 (2024-12-12)
 
 ### Chart

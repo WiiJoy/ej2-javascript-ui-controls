@@ -2,12 +2,12 @@ import { isNullOrUndefined, NumberFormatOptions, Internationalization, DateForma
 import { ZipArchive, ZipArchiveItem } from '@syncfusion/ej2-compression';
 import { LineWidget, ElementBox, BodyWidget, ParagraphWidget, TextElementBox, BlockWidget, TableRowWidget, TableCellWidget, TableWidget } from '../viewer/page';
 import { WCharacterFormat, WCellFormat, TextPosition, TextSearchResults, WList, WAbstractList, Revision, CommentElementBox } from '../index';
-import { HighlightColor, TextFormFieldType, CheckBoxSizeType, RevisionType, CollaborativeEditingAction, CompatibilityMode, BaselineAlignment, Underline, Strikethrough, BiDirectionalOverride, BreakClearType, LineStyle, TextAlignment, LineSpacingType, OutlineLevel, VerticalAlignment } from '../../base/types';
+import { HighlightColor, TextFormFieldType, CheckBoxSizeType, RevisionType, CollaborativeEditingAction, CompatibilityMode, BaselineAlignment, Underline, Strikethrough, BiDirectionalOverride, BreakClearType, LineStyle, TextAlignment, LineSpacingType, OutlineLevel, VerticalAlignment, FontHintType } from '../../base/types';
 import { Widget, FieldElementBox, CommentCharacterElementBox } from '../viewer/page';
 import { Dictionary, MentionDataEditInfo } from '../..';
 import { WBorder, WBorders, WParagraphFormat } from '../format';
 import {
-    boldProperty, italicProperty, fontSizeProperty, fontFamilyProperty, underlineProperty, underlineColorProperty,
+    boldProperty, italicProperty, fontSizeProperty, fontFamilyProperty, underlineProperty, underlineColorProperty, fontHintTypeProperty,
     strikethroughProperty, baselineAlignmentProperty, highlightColorProperty, fontColorProperty,
     styleNameProperty, bidiProperty, bdoProperty, boldBidiProperty, italicBidiProperty, fontSizeBidiProperty,
     fontFamilyBidiProperty, allCapsProperty, localeIdBidiProperty, localeIdProperty, complexScriptProperty, fontFamilyAsciiProperty,
@@ -578,6 +578,16 @@ export class HelperMethods {
             return 17;
         }
     }
+    public static getFontHintTypeEnumValue(fontHintType: FontHintType): number {
+        switch (fontHintType) {
+        case 'Default':
+            return 0;
+        case 'EastAsia':
+            return 1;
+        case 'CS':
+            return 2;
+        }
+    }
     /* eslint-disable */
     public static getStrikeThroughEnumValue(strikethrough: Strikethrough): number {
         switch (strikethrough) {
@@ -826,6 +836,9 @@ export class HelperMethods {
         keywordIndex == 1 ? HelperMethods.getUnderlineEnumValue(format.underline): format.underline : 
         keywordIndex == 1 ? HelperMethods.getUnderlineEnumValue(format.getValue('underline') as Underline): format.getValue('underline') as Underline;
         characterFormat[underlineColorProperty[keywordIndex]] = isWriteAllValues? format.underlineColor :isInline ? this.toWriteInline(format, 'underlineColor') : format.getValue('underlineColor');
+        characterFormat[fontHintTypeProperty[keywordIndex]] = isWriteAllValues ? format.fontHintType : isInline ?
+        keywordIndex == 1 ? HelperMethods.getFontHintTypeEnumValue(format.fontHintType) : (format.fontHintType) :
+        keywordIndex == 1 ? HelperMethods.getFontHintTypeEnumValue(format.getValue('fontHintType') as FontHintType) : (format.getValue('fontHintType') as FontHintType);
         characterFormat[strikethroughProperty[keywordIndex]] = isWriteAllValues? format.strikethrough :isInline ? 
         keywordIndex == 1 ? HelperMethods.getStrikeThroughEnumValue(format.strikethrough) :(format.strikethrough) : 
         keywordIndex == 1 ? HelperMethods.getStrikeThroughEnumValue(format.getValue('strikethrough') as Strikethrough):(format.getValue('strikethrough') as Strikethrough);
@@ -855,6 +868,14 @@ export class HelperMethods {
         characterFormat[fontFamilyFarEastProperty[keywordIndex]] = isWriteAllValues? format.fontFamilyFarEast :isInline ? this.toWriteInline(format, 'fontFamilyFarEast') : format.getValue('fontFamilyFarEast');
         characterFormat[characterSpacingProperty[keywordIndex]] = isWriteAllValues? format.characterSpacing :isInline ? this.toWriteInline(format, 'characterSpacing') : format.getValue('characterSpacing');
         characterFormat[scalingProperty[keywordIndex]] = isWriteAllValues? format.scaling :isInline ? this.toWriteInline(format, 'scaling') : format.getValue('scaling');
+        if (format.hasValue('fontFamily') || isWriteAllValues) {
+            if (isNullOrUndefined(characterFormat[fontFamilyAsciiProperty[keywordIndex]])) {
+                characterFormat[fontFamilyAsciiProperty[keywordIndex]] = format.fontFamily;
+            }
+            if (isNullOrUndefined(characterFormat[fontFamilyNonFarEastProperty[keywordIndex]])) {
+                characterFormat[fontFamilyNonFarEastProperty[keywordIndex]] = format.fontFamily;
+            }
+        }
     }
     /// <summary>
     /// To check whether the font name is theme font or not.

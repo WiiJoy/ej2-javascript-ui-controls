@@ -1219,7 +1219,7 @@ export class ParagraphWidget extends BlockWidget {
                 if (inline instanceof TextElementBox || inline instanceof ImageElementBox || inline instanceof BookmarkElementBox
                     || inline instanceof EditRangeEndElementBox || inline instanceof EditRangeStartElementBox
                     || inline instanceof ChartElementBox || inline instanceof ShapeElementBox
-                    || inline instanceof ContentControl
+                    || inline instanceof ContentControl || inline instanceof CommentCharacterElementBox
                     || (inline instanceof FieldElementBox && HelperMethods.isLinkedFieldCharacter((inline as FieldElementBox)))) {
                     return false;
                 }
@@ -1245,7 +1245,7 @@ export class ParagraphWidget extends BlockWidget {
                         || inline instanceof ShapeElementBox
                         || inline instanceof BookmarkElementBox || inline instanceof FieldElementBox
                         && HelperMethods.isLinkedFieldCharacter(inline as FieldElementBox))
-                        || inline instanceof ChartElementBox) {
+                        || inline instanceof ChartElementBox || inline instanceof ContentControl || inline instanceof CommentCharacterElementBox) {
                         isStarted = true;
                     }
 
@@ -1490,8 +1490,11 @@ export class ParagraphWidget extends BlockWidget {
             || (character >= String.fromCharCode(0xF900) && character <= String.fromCharCode(0xFAFF))
         );
     }
+    private isSpecialCharacters(character: string): boolean {
+        return ((character >= String.fromCharCode(8192) && character <= String.fromCharCode(10175)));
+    }
 
-    private getFontScriptType(inputCharacter: string): FontScriptType {
+    private getFontScriptType(inputCharacter: string, hasHintType: boolean): FontScriptType {
         // Return FontScriptType as Hindi, if input character is in-between Hindi character ranges.
         if (this.isHindiChar(inputCharacter))
             return FontScriptType.Hindi;
@@ -1513,12 +1516,15 @@ export class ParagraphWidget extends BlockWidget {
         // Return FontScriptType as Thai, if input character is in-between Thai character ranges.
         else if (this.isThaiCharacter(inputCharacter))
             return FontScriptType.Thai;
+        // Return FontScriptType as SpecialCharacter, if input character is in-between SpecialCharacter character ranges.
+        else if (this.isSpecialCharacters(inputCharacter) && hasHintType)
+            return FontScriptType.SpecialCharacter;
         // Return FontScriptType as English, for remaining character ranges.
         else
             return FontScriptType.English;
     }
 
-    public splitTextByFontScriptType(inputText: string, fontScriptTypes: FontScriptType[]): string[] {
+    public splitTextByFontScriptType(inputText: string, fontScriptTypes: FontScriptType[], hasHintType: boolean): string[] {
         let splittedText: string[] = [];
         //Retrun the empty array, if input text is Null or Empty.
         if (isNullOrUndefined(inputText)
@@ -1536,7 +1542,7 @@ export class ParagraphWidget extends BlockWidget {
             // So, that we can avoid a text splitting based on space character.
             if (inputText[i] != String.fromCharCode(32) && !surrogateRegex.test(inputText[i])) {
                 // && !(char.IsHighSurrogate(inputText.charAt(i)) || char.IsLowSurrogate(inputText.charAt(i)))) { //Skip the setting of script type for surrogate character.
-                currCharacterType = this.getFontScriptType(inputText[i]);
+                currCharacterType = this.getFontScriptType(inputText[i], hasHintType);
             }
 
             //Add a current text into splitted text collection, when previous character type is not equival to current type.
@@ -1598,10 +1604,11 @@ export class ParagraphWidget extends BlockWidget {
                 }
 
                 if (textElement != undefined && !isField) {
-                    // let hasHintPath: boolean = textElement.characterFormat.IdctHint != FontHintType.Default;
+                    // ToDo: Need to handle CS font hint type
+                    let hasHintType: boolean = textElement.characterFormat.fontHintType === 'EastAsia' && textElement.characterFormat.hasValue('fontFamilyFarEast');
                     let fontScriptTypes: FontScriptType[] = [];
                     // Split a current text part text based on FontScriptType.
-                    let splitedTextCollection: string[] = this.splitTextByFontScriptType(textElement.text, fontScriptTypes);
+                    let splitedTextCollection: string[] = this.splitTextByFontScriptType(textElement.text, fontScriptTypes, hasHintType);
 
                     if (splitedTextCollection.length > 1) {
                         for (let j: number = 0; j < splitedTextCollection.length; j++) {
@@ -3231,10 +3238,18 @@ export class TableRowWidget extends BlockWidget {
      * @private
      */
     public updateUniformWidthUnitForCells():void{
+        let isSetMinwidth: boolean = false;
+        if (this.ownerTable && this.ownerTable.tableHolder && this.ownerTable.tableHolder.columns && this.childWidgets.length !== this.ownerTable.tableHolder.columns.length) {
+            isSetMinwidth = true;
+        }
         for (let i: number = 0; i < this.childWidgets.length; i++) {
             let cell: TableCellWidget = this.childWidgets[i] as TableCellWidget;
             cell.cellFormat.preferredWidthType = "Point";
-            cell.cellFormat.preferredWidth = cell.cellFormat.cellWidth;
+            if (isSetMinwidth) {
+                cell.cellFormat.preferredWidth = cell.getMinimumPreferredWidth();
+            } else {
+                cell.cellFormat.preferredWidth = cell.cellFormat.cellWidth;
+            }
         }
     }
     /**
@@ -3990,12 +4005,18 @@ export class TableCellWidget extends BlockWidget {
                 isFirstCell = true;
             }
             let isRowBorderDefined: boolean = false;
+            let hasNoneStyle: boolean = false;
+            if (isFirstCell && !isNullOrUndefined(rowBorders.left)) {
+                hasNoneStyle = rowBorders.left.hasNoneStyle;
+            } else if (!isFirstCell && !isNullOrUndefined(rowBorders.vertical)) {
+                hasNoneStyle = rowBorders.vertical.hasNoneStyle;
+            }
             if (!isNullOrUndefined(rowBorders.left) && rowBorders.left.lineStyle !== 'None' 
-                && rowBorders.left.isBorderDefined && !isNullOrUndefined(leftBorder) 
+                && rowBorders.left.isBorderDefined && !hasNoneStyle && !isNullOrUndefined(leftBorder) 
                 && leftBorder.lineStyle === 'None' && leftBorder.isBorderDefined && !leftBorder.hasValue('color')) {
                 isRowBorderDefined = true;
             }
-            if ((!isNullOrUndefined(leftBorder) && leftBorder.lineStyle === 'None' && (!leftBorder.isBorderDefined || isRowBorderDefined)) || isNullOrUndefined(leftBorder)) {
+            if ((!isNullOrUndefined(leftBorder) && leftBorder.lineStyle === 'None' && ((!leftBorder.isBorderDefined && !hasNoneStyle) || isRowBorderDefined)) || isNullOrUndefined(leftBorder)) {
                 if (isFirstCell) {
                     leftBorder = rowBorders.left;
                     if ((!isNullOrUndefined(leftBorder) && leftBorder.lineStyle === 'None') || isNullOrUndefined(leftBorder)) {
@@ -4090,12 +4111,18 @@ export class TableCellWidget extends BlockWidget {
                 isLastCell = true;
             }
             let isRowBorderDefined: boolean = false;
+            let hasNoneStyle: boolean = false;
+            if (isLastCell && !isNullOrUndefined(rowBorders.right)) {
+                hasNoneStyle = rowBorders.right.hasNoneStyle;
+            } else if (!isLastCell && !isNullOrUndefined(rowBorders.vertical)) {
+                hasNoneStyle = rowBorders.vertical.hasNoneStyle;
+            }
             if (!isNullOrUndefined(rowBorders.right) && rowBorders.right.lineStyle !== 'None' 
-                && rowBorders.right.isBorderDefined && !isNullOrUndefined(rightBorder) && rightBorder.lineStyle === 'None' 
+                && rowBorders.right.isBorderDefined && !hasNoneStyle && !isNullOrUndefined(rightBorder) && rightBorder.lineStyle === 'None' 
                 && rightBorder.isBorderDefined && !rightBorder.hasValue('color')) {
                 isRowBorderDefined = true;
             }
-            if ((!isNullOrUndefined(rightBorder) && rightBorder.lineStyle === 'None' && (!rightBorder.isBorderDefined || isRowBorderDefined)) || isNullOrUndefined(rightBorder)) {
+            if ((!isNullOrUndefined(rightBorder) && rightBorder.lineStyle === 'None' && ((!rightBorder.isBorderDefined && !hasNoneStyle) || isRowBorderDefined)) || isNullOrUndefined(rightBorder)) {
                 if (isLastCell) {
                     rightBorder = rowBorders.right;
                     if ((!isNullOrUndefined(rightBorder) && rightBorder.lineStyle === 'None') || isNullOrUndefined(rightBorder)) {
@@ -4178,12 +4205,18 @@ export class TableCellWidget extends BlockWidget {
         if (!isNullOrUndefined(ownerCell)) {
             let isFirstRow: boolean = isNullOrUndefined(ownerCell.ownerRow.previousWidget);
             let isRowBorderDefined: boolean = false;
+            let hasNoneStyle: boolean = false;
+            if (isFirstRow && !isNullOrUndefined(rowBorders.top)) {
+                hasNoneStyle = rowBorders.top.hasNoneStyle;
+            } else if (!isFirstRow && !isNullOrUndefined(rowBorders.horizontal)) {
+                hasNoneStyle = rowBorders.horizontal.hasNoneStyle;
+            }
             if (!isNullOrUndefined(rowBorders.top) && rowBorders.top.lineStyle !== 'None' 
-                && rowBorders.top.isBorderDefined && !isNullOrUndefined(topBorder) 
+                && rowBorders.top.isBorderDefined && !hasNoneStyle && !isNullOrUndefined(topBorder) 
                 && topBorder.lineStyle === 'None' && topBorder.isBorderDefined && !topBorder.hasValue('color')) {
                 isRowBorderDefined = true;
             }
-            if ((!isNullOrUndefined(topBorder) && topBorder.lineStyle === 'None' && (!topBorder.isBorderDefined || isRowBorderDefined)) || isNullOrUndefined(topBorder)) {
+            if ((!isNullOrUndefined(topBorder) && topBorder.lineStyle === 'None' && ((!topBorder.isBorderDefined && !hasNoneStyle) || isRowBorderDefined)) || isNullOrUndefined(topBorder)) {
                 if (isFirstRow) {
                     topBorder = rowBorders.top;
                     if ((!isNullOrUndefined(topBorder) && topBorder.lineStyle === 'None') || isNullOrUndefined(topBorder)) {
@@ -4276,12 +4309,18 @@ export class TableCellWidget extends BlockWidget {
         if (!isNullOrUndefined(ownerCell)) {
             let isLastRow: boolean = isNullOrUndefined(ownerCell.ownerRow.nextWidget);
             let isRowBorderDefined: boolean = false;
+            let hasNoneStyle: boolean = false;
+            if (isLastRow && !isNullOrUndefined(rowBorders.bottom)) {
+                hasNoneStyle = rowBorders.bottom.hasNoneStyle;
+            } else if (!isLastRow && !isNullOrUndefined(rowBorders.horizontal)) {
+                hasNoneStyle = rowBorders.horizontal.hasNoneStyle;
+            }
             if (!isNullOrUndefined(rowBorders.bottom) && rowBorders.bottom.lineStyle !== 'None' 
-                && rowBorders.bottom.isBorderDefined && !isNullOrUndefined(bottomBorder) 
+                && rowBorders.bottom.isBorderDefined && !hasNoneStyle && !isNullOrUndefined(bottomBorder) 
                 && bottomBorder.lineStyle === 'None' && bottomBorder.isBorderDefined && !bottomBorder.hasValue('color')) {
                 isRowBorderDefined = true;
             }
-            if ((!isNullOrUndefined(bottomBorder) && bottomBorder.lineStyle === 'None' && (!bottomBorder.isBorderDefined || isRowBorderDefined)) || isNullOrUndefined(bottomBorder)) {
+            if ((!isNullOrUndefined(bottomBorder) && bottomBorder.lineStyle === 'None' && ((!bottomBorder.isBorderDefined && !hasNoneStyle) || isRowBorderDefined)) || isNullOrUndefined(bottomBorder)) {
                 if (isLastRow) {
                     bottomBorder = rowBorders.bottom;
                     if ((!isNullOrUndefined(bottomBorder) && bottomBorder.lineStyle === 'None') || isNullOrUndefined(bottomBorder)) {
