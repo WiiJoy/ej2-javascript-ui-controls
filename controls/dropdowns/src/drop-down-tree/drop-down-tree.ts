@@ -2130,7 +2130,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
         this.inputEle.setAttribute('aria-label', this.getModuleName());
         const id: string = this.element.getAttribute('id');
         this.hiddenElement.id = id + '_hidden';
-        this.inputWrapper.setAttribute('tabindex', '0');
+        this.inputWrapper.setAttribute('tabindex', this.inputWrapper.classList.contains('e-disabled') ? '-1' : '0');
         this.inputWrapper.setAttribute('aria-label', this.getModuleName());
         attributes(this.inputWrapper, this.getAriaAttributes());
     }
@@ -2480,7 +2480,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                 removeClass([this.popupEle], DDTHIDEICON);
                 this.updatePopupHeight();
                 this.popupObj.refreshPosition();
-                if (!(this.showCheckBox && this.showSelectAll) && (!this.popupDiv.classList.contains(NODATA)
+                if (!(this.showSelectAll || this.allowFiltering) && (!this.popupDiv.classList.contains(NODATA)
                     && this.treeItems.length > 0)) {
                     let focusedElement: HTMLElement = this.value != null && this.text != null ? this.treeObj.element.querySelector('[data-uid="' + this.value[0] + '"]') : null;
                     if (focusedElement) {
@@ -2491,17 +2491,9 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                         const oldFocussedNode: HTMLElement = this.treeObj.element.querySelector('.e-node-focus');
                         focusedElement = this.treeObj.element.querySelector('li[tabindex="0"]:not(.e-disable)') ||
                                          this.treeObj.element.querySelector('li:not(.e-disable)');
-                        if (oldFocussedNode && oldFocussedNode !== focusedElement) {
-                            oldFocussedNode.setAttribute('tabindex', '-1');
-                            removeClass([oldFocussedNode], 'e-node-focus');
-                        }
+                        this.removeFocus(focusedElement, oldFocussedNode);
                     }
-                    if (!isNOU(focusedElement)) {
-                        if (!this.allowFiltering) {
-                            focusedElement.focus();
-                        }
-                        addClass([focusedElement], ['e-node-focus']);
-                    }
+                    this.updateFocus(focusedElement);
                 }
                 if (this.treeObj.checkedNodes.length > 0 && !this.isFilterRestore) {
                     const nodes: NodeList = this.treeObj.element.querySelectorAll('li');
@@ -2512,7 +2504,17 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                         this.checkSelectAll = false;
                     }
                 }
+                if (this.showSelectAll && !this.allowFiltering) {
+                    const oldFocussedNode: HTMLElement = this.treeObj.element.querySelector('.e-node-focus');
+                    const focusedElement: HTMLElement =  this.popupEle.querySelector('.e-selectall-parent');
+                    this.removeFocus(focusedElement, oldFocussedNode);
+                    this.updateFocus(focusedElement);
+                }
                 if (this.allowFiltering) {
+                    const focusedElement: HTMLElement = this.treeObj.element.querySelector('li.e-node-focus');
+                    if (!isNOU(focusedElement)) {
+                        removeClass([focusedElement], 'e-node-focus');
+                    }
                     removeClass([this.inputWrapper], [INPUTFOCUS]);
                     this.filterObj.element.focus();
                 }
@@ -2520,6 +2522,20 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                 this.trigger('open', eventArgs);
             }
         });
+    }
+
+    private removeFocus(focusedElement: HTMLElement, oldFocusedElement: HTMLElement): void {
+        if (oldFocusedElement && oldFocusedElement !== focusedElement) {
+            oldFocusedElement.setAttribute('tabindex', '-1');
+            removeClass([oldFocusedElement], 'e-node-focus');
+        }
+    }
+
+    private updateFocus(focusedElement: HTMLElement): void {
+        if (!isNOU(focusedElement)) {
+            focusedElement.focus();
+            addClass([focusedElement], ['e-node-focus']);
+        }
     }
 
     private reactCallBack(): void {
@@ -2818,7 +2834,9 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
             this.updateTemplate();
         }
         this.treeObj.fields = this.getTreeFields(this.fields);
+        this.setProperties({ value: this.oldValue }, true);
         this.treeObj.dataBind();
+        this.updateValue(this.value);
     }
     private getEventArgs(args: NodeCheckEventArgs | NodeSelectEventArgs): DdtSelectEventArgs {
         const checkData: { [key: string]: Object }[] = (args as NodeCheckEventArgs).data;
@@ -3340,7 +3358,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
         this.chipCollection.appendChild(chip);
         if (this.showClearButton) {
             chip.appendChild(chipClose);
-            EventHandler.add(chipClose, 'mousedown', this.removeChip, this);
+            EventHandler.add(chipClose, 'mouseup', this.removeChip, this);
         }
     }
 
@@ -3379,6 +3397,9 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
         }
         chip.appendChild(chipContent);
         this.chipCollection.appendChild(chip);
+        if ((this as any).isReact) {
+            this.renderReactTemplates();
+        }
     }
 
     private setSelectAllWrapper(state: boolean): void {
@@ -3469,6 +3490,10 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
     private removeChip(e: MouseEvent): void {
         if (!this.enabled || this.readonly) {
             return;
+        }
+        if ((e.target as HTMLElement).classList.contains('e-chips-close') && !this.isPopupOpen) {
+            e.stopPropagation();
+            e.preventDefault();
         }
         const element: HTMLElement = (<HTMLElement>e.target).parentElement;
         const value: string = element.getAttribute('data-value');
@@ -3798,8 +3823,11 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                 this.updateFilterPlaceHolder();
                 break;
             case 'value':
-                this.oldValue = oldProp.value;
-                this.updateValue(newProp.value); break;
+                if (JSON.stringify(oldProp.value) !== JSON.stringify(newProp.value)) {
+                    this.oldValue = oldProp.value;
+                    this.updateValue(newProp.value);
+                }
+                break;
             case 'text': this.updateText(newProp.text); break;
             case 'allowMultiSelection': this.updateMultiSelection(newProp.allowMultiSelection); break;
             case 'mode':
@@ -3974,7 +4002,7 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
         if (this.chipCollection) {
             const chipsIcons: HTMLElement[] = selectAll('.e-chips-close', this.chipCollection);
             for (const element of chipsIcons) {
-                EventHandler.remove(element, 'mousedown', this.removeChip);
+                EventHandler.remove(element, 'mouseup', this.removeChip);
             }
         }
         this.chipWrapper = null;
@@ -4060,6 +4088,9 @@ export class DropDownTree extends Component<HTMLElement> implements INotifyPrope
                 if (this.allowFiltering) {
                     addClass([this.inputWrapper], [INPUTFOCUS]);
                 }
+            }
+            if (this.isFilteredData) {
+                (this.treeObj as any)['treeData'] = this.treeData;
             }
             if (this.destroyPopupOnHide) {
                 this.isFirstRender = true;

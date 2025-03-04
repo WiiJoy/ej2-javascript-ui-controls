@@ -20,7 +20,7 @@ import { PdfQueryCellInfoEventArgs, ExcelQueryCellInfoEventArgs, ExcelExportProp
 import { PdfHeaderQueryCellInfoEventArgs, ExcelHeaderQueryCellInfoEventArgs, ExportDetailDataBoundEventArgs, ExportDetailTemplateEventArgs } from './interface';
 import { ColumnMenuOpenEventArgs, BatchCancelArgs, RecordDoubleClickEventArgs, DataResult, PendingState } from './interface';
 import { HeaderCellInfoEventArgs, KeyboardEventArgs, RecordClickEventArgs, AdaptiveDialogEventArgs } from './interface';
-import { FailureEventArgs, FilterEventArgs, ColumnDragEventArgs, GroupEventArgs, PrintEventArgs, ICustomOptr } from './interface';
+import { FailureEventArgs, FilterEventArgs, ColumnDragEventArgs, GroupEventArgs, PrintEventArgs, ICustomOptr, ReorderEventArgs } from './interface';
 import { RowDeselectEventArgs, RowSelectEventArgs, RowSelectingEventArgs, RowDeselectingEventArgs, PageEventArgs, RowDragEventArgs } from './interface';
 import { BeforeBatchAddArgs, BeforeBatchDeleteArgs, BeforeBatchSaveArgs, ResizeArgs, ColumnMenuItemModel } from './interface';
 import { BatchAddArgs, BatchDeleteArgs, BeginEditArgs, CellEditArgs, CellSaveArgs, BeforeDataBoundArgs, RowInfo } from './interface';
@@ -2045,7 +2045,7 @@ export class Grid extends Component<HTMLElement> implements INotifyPropertyChang
      * @event actionBegin
      */
     @Event()
-    public actionBegin: EmitType<PageEventArgs | GroupEventArgs | FilterEventArgs | SearchEventArgs | SortEventArgs | AddEventArgs | SaveEventArgs | EditEventArgs | DeleteEventArgs | ActionEventArgs | NotifyArgs>;
+    public actionBegin: EmitType<PageEventArgs | GroupEventArgs | FilterEventArgs | SearchEventArgs | SortEventArgs | AddEventArgs | SaveEventArgs | EditEventArgs | DeleteEventArgs | ActionEventArgs | NotifyArgs | ReorderEventArgs>;
 
     /**
      * Triggers when Grid actions such as sorting, filtering, paging, grouping etc. are completed.
@@ -2053,7 +2053,7 @@ export class Grid extends Component<HTMLElement> implements INotifyPropertyChang
      * @event actionComplete
      */
     @Event()
-    public actionComplete: EmitType<PageEventArgs | GroupEventArgs | FilterEventArgs | SearchEventArgs | SortEventArgs | AddEventArgs | SaveEventArgs | EditEventArgs | DeleteEventArgs | ActionEventArgs | NotifyArgs>;
+    public actionComplete: EmitType<PageEventArgs | GroupEventArgs | FilterEventArgs | SearchEventArgs | SortEventArgs | AddEventArgs | SaveEventArgs | EditEventArgs | DeleteEventArgs | ActionEventArgs | NotifyArgs | ReorderEventArgs>;
     /* eslint-enable */
 
     /**
@@ -4108,7 +4108,9 @@ export class Grid extends Component<HTMLElement> implements INotifyPropertyChang
                 if (this.pagerModule.pagerObj.isAllPage) {
                     const count: number = this.dataSource instanceof DataManager ? (this.dataSource as DataManager).dataSource.json.length :
                         'result' in this.dataSource ? this.dataSource.count : (this.dataSource as Object[]).length;
-                    if ((this.pageSettings.pageSizes as Object[]).indexOf('All') === -1 && this.pageSettings.pageSize !== count) {
+                    const isAllPage: boolean = Array.isArray(this.pageSettings.pageSizes) &&
+                        (this.pageSettings.pageSizes as Object[]).indexOf('All') > -1 ? true : (this.pageSettings.pageSizes as boolean);
+                    if (!isAllPage && this.pageSettings.pageSize !== count) {
                         this.pagerModule.pagerObj.isAllPage = false;
                     } else {
                         this.setProperties({ pageSettings: { pageSize: count } }, true);
@@ -7577,7 +7579,8 @@ export class Grid extends Component<HTMLElement> implements INotifyPropertyChang
     private keyPressHandler(e: KeyboardEventArgs): void {
         const presskey: KeyboardEventArgs = <KeyboardEventArgs>extend(e, { cancel: false });
         this.trigger('keyPressed', presskey);
-        if (presskey.cancel === true) {
+        if (presskey.cancel === true || (this.isEdit && e && parentsUntil((e.target as Element), 'e-gridform') &&
+            parentsUntil((e.target as Element), 'e-ddl') && e.action === 'open' && e.altKey === true && e.code === 'ArrowDown')) {
             e.stopImmediatePropagation();
         }
     }

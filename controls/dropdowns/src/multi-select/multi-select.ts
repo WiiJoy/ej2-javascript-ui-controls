@@ -121,6 +121,8 @@ export class MultiSelect extends DropDownBase implements IInput {
     private isUpdateFooterHeight: boolean = false;
     private isBlurDispatching: boolean = false;
     private isFilterPrevented: boolean = false;
+    private isFilteringAction: boolean = false;
+    private isVirtualReorder: boolean = false;
 
     /**
      * The `fields` property maps the columns of the data table and binds the data to the component.
@@ -961,11 +963,13 @@ export class MultiSelect extends DropDownBase implements IInput {
 
     private updateVirtualReOrderList(isCheckBoxUpdate?: boolean): void {
         const query: Query = this.getForQuery(this.value, true).clone();
+        this.isVirtualReorder = true;
         if (this.enableVirtualization && this.dataSource instanceof DataManager) {
             this.resetList(this.selectedListData, this.fields, query);
         } else {
             this.resetList(this.dataSource, this.fields, query);
         }
+        this.isVirtualReorder = false;
         this.UpdateSkeleton();
         this.liCollections = <HTMLElement[] & NodeListOf<Element>>this.list.querySelectorAll('.' + dropDownBaseClasses.li);
         this.virtualItemCount = this.itemCount;
@@ -1189,11 +1193,15 @@ export class MultiSelect extends DropDownBase implements IInput {
         let predicate: Predicate;
         const field: string = this.isPrimitiveData ? '' : this.fields.value;
         if (this.enableVirtualization && valuecheck) {
-            if (isCheckbox){
-                for (let i: number = 0; i < valuecheck.length; i++) {
+            if (isCheckbox) {
+                const startindex: number = this.viewPortInfo.startIndex;
+                const endindex: number = (((startindex + this.viewPortInfo.endIndex) <= (valuecheck.length)) &&
+                    valuecheck[(startindex + this.viewPortInfo.endIndex) as number]) ? (startindex + this.viewPortInfo.endIndex)
+                    : (valuecheck.length);
+                for (let i: number = startindex; i < endindex; i++) {
                     const value: string | number | boolean = this.allowObjectBinding ? getValue((this.fields.value) ?
                         this.fields.value : '', (valuecheck[i as number] as string)) : (valuecheck[i as number] as string);
-                    if (i === 0) {
+                    if (i === startindex) {
                         predicate = new Predicate(field, 'equal', (value));
                     } else {
                         predicate = predicate.or(field, 'equal', (value));
@@ -1240,7 +1248,7 @@ export class MultiSelect extends DropDownBase implements IInput {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.totalItemCount = (e as any).count;
         }
-        if (this.value && list && list.length > 0 && this.allowFiltering && this.mode !== 'CheckBox' && !this.enableVirtualization && !this.isFilterPrevented && !this.allowCustomValue) {
+        if (this.value && list && list.length > 0 && this.allowFiltering && this.mode !== 'CheckBox' && !this.enableVirtualization && !this.isFilterPrevented && !this.allowCustomValue && this.isFilteringAction) {
             const allItemsInValue: boolean = list.every((item: { [key: string]: Object } | string | number | boolean) => {
                 const itemValue: any = getValue((this.fields.value) ? this.fields.value : '', item);
                 return this.value.some((val: string | number | boolean | object) => {
@@ -1631,7 +1639,7 @@ export class MultiSelect extends DropDownBase implements IInput {
                 }
             }
         }
-        if ((this.allowFiltering && isSkip) || !isReOrder || (!this.allowFiltering && isSkip)) {
+        if ((this.allowFiltering && isSkip) || !isReOrder || (!this.allowFiltering && isSkip) && !this.isVirtualReorder) {
             if (!isReOrder){
                 filterQuery.skip(this.viewPortInfo.startIndex);
             }
@@ -2296,6 +2304,10 @@ export class MultiSelect extends DropDownBase implements IInput {
             }
             break;
         }
+    }
+
+    protected updatePopupPosition(): void {
+        this.refreshPopup();
     }
 
     private updateAriaAttribute(): void {
@@ -3944,6 +3956,9 @@ export class MultiSelect extends DropDownBase implements IInput {
             this.totalItemCount = this.value && this.value.length ? this.totalItemCount - this.value.length : this.totalItemCount;
         }
         this.getSkeletonCount();
+        this.skeletonCount = this.totalItemCount !== 0 && this.totalItemCount < this.itemCount * 2 &&
+            ((!(this.dataSource instanceof DataManager)) || ((this.dataSource instanceof DataManager) &&
+            (this.totalItemCount <= this.itemCount))) ? 0 : this.skeletonCount;
         this.UpdateSkeleton();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (this.list.getElementsByClassName('e-virtual-ddl')[0] as any) {
@@ -4162,6 +4177,7 @@ export class MultiSelect extends DropDownBase implements IInput {
                         this.isFiltered = true;
                         this.customFilterQuery = query;
                         this.remoteFilterAction = true;
+                        this.isCustomFiltering = true;
                         this.dataUpdater(dataSource, query, fields);
                     },
                     event: e,
@@ -4172,10 +4188,12 @@ export class MultiSelect extends DropDownBase implements IInput {
                     if (!eventArgs.cancel) {
                         if (!this.isFiltered && !eventArgs.preventDefaultAction) {
                             this.filterAction = true;
+                            this.isFilteringAction = true;
                             if (this.dataSource instanceof DataManager && this.allowCustomValue ) {
                                 this.isCustomRendered = false;
                             }
                             this.dataUpdater(this.dataSource, null, this.fields);
+                            this.isFilteringAction = false;
                         }
                     }
                 });
@@ -4389,7 +4407,8 @@ export class MultiSelect extends DropDownBase implements IInput {
                                 text = this.text.split(delimiterChar);
                             } else {
                                 temp = isInitialVirtualData && delim ? this.text : this.getTextByValue(value);
-                                const textValues: string = this.isDynamicRemoteVirtualData && value != null && value !== '' ? this.getTextByValue(value) : isInitialVirtualData ? this.text : (this.text && this.text !== '' ? this.text + this.delimiterChar + temp : temp);
+                                const textValues: string = this.isDynamicRemoteVirtualData && value != null && value !== '' && !isInitialVirtualData ?
+                                    this.getTextByValue(value) : isInitialVirtualData ? this.text : (this.text && this.text !== '' ? this.text + this.delimiterChar + temp : temp);
                                 data += temp + delimiterChar + ' ';
                                 text.push(textValues);
                                 hiddenElementContent = this.hiddenElement.innerHTML;
@@ -4548,7 +4567,7 @@ export class MultiSelect extends DropDownBase implements IInput {
                             (this.mode === 'Box' || this.mode === 'Default'))) ||
                         (this.enableVirtualization && value != null && text != null && !isCustomData)) {
                         const currentText: string[] = [];
-                        const textValues: string = this.isDynamicRemoteVirtualData && text != null && text !== '' ? text : this.text != null && this.text !== '' ? this.text + this.delimiterChar + text : text;
+                        const textValues: string = this.isDynamicRemoteVirtualData && text != null && text !== '' && index === 0 ? text : this.text != null && this.text !== '' && !(this.text as any).includes(text) ? this.text + this.delimiterChar + text : text;
                         currentText.push(textValues);
                         this.setProperties({ text: currentText.toString() }, true);
                         this.addChip(text, value);

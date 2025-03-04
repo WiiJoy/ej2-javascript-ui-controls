@@ -3,11 +3,10 @@
  */
 import { createElement, Browser } from '@syncfusion/ej2-base';
 import { RichTextEditor } from '../../src/rich-text-editor/base/rich-text-editor';
-import { renderRTE, destroy, setCursorPoint } from './../rich-text-editor/render.spec';
+import { renderRTE, destroy, dispatchEvent as dispatchEve, setCursorPoint } from './../rich-text-editor/render.spec';
 import { NodeSelection } from '../../src/selection/selection';
 import { Dialog } from '@syncfusion/ej2-popups';
-import { BASIC_MOUSE_EVENT_INIT } from '../constant.spec';
-import { ENTERKEY_EVENT_INIT, BACKSPACE_EVENT_INIT } from '../constant.spec';
+import { BACKSPACE_EVENT_INIT, BASIC_MOUSE_EVENT_INIT, ENTERKEY_EVENT_INIT } from '../constant.spec';
 
 describe('RTE CR issues ', () => {
 
@@ -149,6 +148,113 @@ describe('RTE CR issues ', () => {
             document.body.innerHTML = "";
         });
     });
+    describe('930848: Formatting, Shift+Enter, and zero-width space removal', () => {
+        let rteObj: RichTextEditor;
+        let keyboardEventArgs: any;
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                height: '200px',
+                value: '<p>testing\u200B</p>',
+                toolbarSettings: {
+                    items: ['Bold', 'Italic', 'Underline']
+                }
+            });
+            keyboardEventArgs = {
+                preventDefault: () => {},
+                stopPropagation: () => {},
+                altKey: false,
+                ctrlKey: false,
+                shiftKey: true,
+                char: '',
+                key: 'Enter',
+                charCode: 13,
+                keyCode: 13,
+                which: 13,
+                code: 'Enter',
+                action: 'enter',
+                type: 'keydown'
+            };
+            done();
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+        it('should remove zero-width spaces, apply formatting, and handle Shift+Enter without errors', (done) => {
+            rteObj.focusIn();
+            const editPanel = rteObj.contentModule.getEditPanel() as HTMLElement;
+            const textNode: Element = editPanel.querySelector('p').firstChild as Element;
+            new NodeSelection().setCursorPoint(document, textNode, textNode.textContent.length);
+            rteObj.formatter.editorManager.nodeSelection.setSelectionText(
+                rteObj.contentModule.getDocument(),
+                textNode,
+                textNode,
+                textNode.textContent.length,
+                textNode.textContent.length
+            );
+            const boldButton = rteObj.element.querySelector('[aria-label="Bold (Ctrl+B)"]') as HTMLElement;
+            boldButton.click();
+            spyOn(console, 'error');
+            (<any>rteObj).keyDown(keyboardEventArgs);
+            keyboardEventArgs.keyCode = 16;
+            keyboardEventArgs.charCode = 16;
+            keyboardEventArgs.which = 16;
+            keyboardEventArgs.shiftKey = false;
+            (<any>rteObj).keyUp(keyboardEventArgs);
+            setTimeout(() => {
+                expect(console.error).not.toHaveBeenCalled();
+                expect(editPanel.innerHTML).not.toContain('\u200B');
+                expect(editPanel.innerHTML).toContain('<strong>');
+                expect(editPanel.innerHTML).toContain('<br>');
+                expect(rteObj.getRange().startContainer.nodeName.toLowerCase()).toBe('br');
+                done();
+            }, 100);
+        });
+    });
+    describe('Bug 934842: Bullet/Numbered list font size not formatting consistent with the text', () => {
+        let rteObj: RichTextEditor;
+        beforeAll(() => {
+            rteObj = renderRTE({
+                value: '<p class="startNode">list 1</p><p>list 2</p><p class="endNode">list 3</p>',
+                toolbarSettings: {
+                    items: ['FontSize', 'OrderedList']
+                },
+                fontSize: {
+                    default: "8pt",
+                    width: "35px",
+                    items: [
+                        { text: "8", value: "8pt" },
+                        { text: "10", value: "10pt" },
+                        { text: "12", value: "12pt" },
+                        { text: "14", value: "14pt" },
+                        { text: "18", value: "18pt" },
+                        { text: "24", value: "24pt" },
+                        { text: "36", value: "36pt" }
+                    ]
+                }
+            });
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+        it(' li tag should have font size style', () => {
+            rteObj.focusIn();
+            const editPanel = rteObj.contentModule.getEditPanel() as HTMLElement;
+            const startNode: Element = editPanel.querySelector('.startNode').firstChild as Element;
+            const endNode: Element = editPanel.querySelector('.endNode').firstChild as Element;
+            rteObj.formatter.editorManager.nodeSelection.setSelectionText(
+                rteObj.contentModule.getDocument(),
+                startNode,
+                endNode,
+                0,
+                endNode.textContent.length
+            );
+            const toolbarElems: NodeListOf<HTMLElement> = rteObj.element.querySelectorAll('.e-toolbar-item');
+            ((rteObj.element.querySelectorAll(".e-toolbar-item")[0] as HTMLElement).querySelector('button') as HTMLButtonElement).click();
+            ((document.querySelector('.e-font-size-tbar-btn ul') as HTMLElement).childNodes[5] as HTMLElement).click();
+            ((rteObj.element.querySelectorAll(".e-toolbar-item")[1] as HTMLElement).querySelector('button') as HTMLButtonElement).click();
+            expect(rteObj.inputElement.innerHTML === '<ol><li class="startnode" style="font-size: 24pt;"><span style="font-size: 24pt;">list 1</span></li><li style="font-size: 24pt;"><span style="font-size: 24pt;">list 2</span></li><li class="endnode" style="font-size: 24pt;"><span style="font-size: 24pt;">list 3</span></li></ol>').toBe(true);
+        });
+    });
     describe('877787 - InsertHtml executeCommand deletes the entire content when we insert html by selection in RichTextEditor', () => {
         let rteObj: RichTextEditor;
         beforeAll(() => {
@@ -230,7 +336,130 @@ describe('RTE CR issues ', () => {
             }, 100);
         });
     });
-    
+
+    describe('Bug 934949: Cmd-Delete (macOS) does not trigger change function in Text Editor', () => {
+        let rteObj: RichTextEditor;
+        let changeSpy: jasmine.Spy = jasmine.createSpy("change");
+        let defaultUA: string = navigator.userAgent;
+        let safari: string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15";
+        beforeEach((done: Function) => {
+            Object.defineProperty(navigator, 'userAgent', {
+                value: safari,
+                configurable: true
+            });
+            rteObj = renderRTE({
+                value: `<p style="margin-left: 20px;" class="rte">RichTextEditor</p>`,
+                autoSaveOnIdle: true,
+                saveInterval: 0,
+                change: changeSpy
+            });
+            rteObj.dataBind();
+            done();
+        });
+        it(' change event trigger while cmd+backspace in mac ', (done) => {
+            rteObj.focusIn();
+            let selectNode: Element = rteObj.element.querySelector('.rte');
+            setCursorPoint(selectNode as Element, 0);
+            const backSpaceKeyDown: KeyboardEvent = new KeyboardEvent('keydown', BACKSPACE_EVENT_INIT);
+            const backSpaceKeyUp: KeyboardEvent = new KeyboardEvent('keyup', BACKSPACE_EVENT_INIT);
+            rteObj.inputElement.dispatchEvent(backSpaceKeyDown);
+            rteObj.inputElement.dispatchEvent(backSpaceKeyUp);
+            setTimeout(() => {
+                expect(changeSpy).toHaveBeenCalled();
+                done();
+            }, 400);
+        });
+        afterEach((done: DoneFn) => {
+            Browser.userAgent = defaultUA;
+            destroy(rteObj);
+            done();
+        });
+    });
+
+    describe('Bug 927325: The "& times;" symbol is converted to "x" when focus is removed from the editor', () => {
+        let rteObj: RichTextEditor;
+        let rteEle: HTMLElement;
+        let controlId: string;
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                toolbarSettings: {
+                    items: ['SourceCode']
+                },
+                value: `<p>&times &divide &ne</p>`,
+                placeholder: 'Type something'
+            });
+            rteEle = rteObj.element;
+            controlId = rteEle.id;
+            done();
+        });
+        it("Value should be same as entered, should not change to x", (done) => {
+            rteObj.focusIn();
+            expect(rteObj.inputElement.innerText === '&times &divide &ne').toBe(true);
+            done();
+        });
+        it("Value should be same as entered, should not change to x after the focus out", (done) => {
+            rteObj.focusOut();
+            setTimeout(() => {
+                expect(rteObj.inputElement.innerText === '&times &divide &ne').toBe(true);
+                done();
+            }, 110);
+        });
+        it("Value should be same as entered, should not change to x after the code view switch", (done) => {
+            let sourceCode: HTMLElement = rteObj.element.querySelector('#' + controlId + '_toolbar_SourceCode');
+            dispatchEve(sourceCode, 'mousedown');
+            dispatchEve(sourceCode, 'mouseup');
+            sourceCode.click();
+            setTimeout(() => {
+                let textarea: HTMLTextAreaElement = (rteObj as any).element.querySelector('.e-rte-srctextarea');
+                expect(textarea.value === `<p>&amp;times &amp;divide &amp;ne</p>`).toBe(true);
+                done();
+            }, 50)
+        });
+        it("Value should be same as entered, should not change to x after the code view switch and focus out", (done) => {
+            rteObj.focusOut();
+            setTimeout(() => {
+                let textarea: HTMLTextAreaElement = (rteObj as any).element.querySelector('.e-rte-srctextarea');
+                expect(textarea.value === `<p>&amp;times &amp;divide &amp;ne</p>`).toBe(true);
+                done();
+            }, 50)
+        });
+        it("Value should be same as entered, should not change to x, after the pre view switch", (done) => {
+            rteObj.focusIn();
+            let trgEle: HTMLElement = <HTMLElement>rteEle.querySelectorAll(".e-toolbar-item")[0];
+            trgEle.click();
+            expect(rteObj.inputElement.innerText === '&times &divide &ne').toBe(true);
+            done();
+        });
+        it("Value should be same as entered, should not change to x after the code view switch and focus out, when sanitizer is off", (done) => {
+            rteObj.enableHtmlSanitizer = false;
+            rteObj.focusOut();
+            setTimeout(() => {
+                let textarea: HTMLTextAreaElement = (rteObj as any).element.querySelector('.e-rte-srctextarea');
+                expect(textarea.value === `<p>&amp;amp;times &amp;amp;divide &amp;amp;ne</p>`).toBe(true);
+                done();
+            }, 50)
+        });
+        it("Value should be same as entered, should not change to x, after the pre view switch, when sanitizer is off", (done) => {
+            rteObj.enableHtmlSanitizer = false;
+            rteObj.focusIn();
+            let trgEle: HTMLElement = <HTMLElement>rteEle.querySelectorAll(".e-toolbar-item")[0];
+            trgEle.click();
+            expect(rteObj.inputElement.innerText === '&times &divide &ne').toBe(true);
+            done();
+        });
+        it("Value should be same as entered, should not change to x", (done) => {
+            rteObj.enableHtmlSanitizer = true;
+            rteObj.focusIn();
+            rteObj.executeCommand('insertHTML', '<p>&times &divide &ne</p>');
+            expect(rteObj.inputElement.innerText === '&times &divide &ne\n\n&times &divide &ne').toBe(true);
+            done();
+        });
+        afterAll((done: DoneFn) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
     describe('875856 - Using indents on Numbered or Bulleted list turns into nested list in RichTextEditor', () => {
         let rteObj: RichTextEditor;
         let rteEle: Element;
@@ -506,8 +735,8 @@ describe('RTE CR issues ', () => {
         (rteObj as any).keyDown(keyBoardEvent);
         setTimeout(() => {
             let value=rteObj.inputElement.querySelector('#ol');
-            expect(value.innerHTML===`<li><p>Provide\n        the tool bar support, it’s also customizable.</p><ol><li><p id="one">Options\n        to get the HTML elements with styles.</p></li><li><p>Support\n        to insert image from a defined path.</p></li><li id="two"><p>Footer\n        elements and styles(tag / Element information , Action button (Upload, Cancel))</p></li></ol></li>`).toBe(true);
-            rteObj.value=`<p id='one'><b>Functional Specifications/Requirements:</b></p><ol><li><p>Provide the tool bar support, it’s also customizable.</p></li><li><p id='two'>Options to get the HTML elements with styles.</p></li></ol>`;
+            expect(value.innerHTML=== `<li><p>Provide\n        the tool bar support, it’s also customizable.</p></li><li><p id="one">Option&nbsp;&nbsp;&nbsp;&nbsp;</p></li>`).toBe(true);
+        rteObj.value=`<p id='one'><b>Functional Specifications/Requirements:</b></p><ol><li><p>Provide the tool bar support, it’s also customizable.</p></li><li><p id='two'>Options to get the HTML elements with styles.</p></li></ol>`;
             rteObj.dataBind();
             startElement = rteObj.inputElement.querySelector('#one');
             endElement = rteObj.inputElement.querySelector('#two');
@@ -524,6 +753,99 @@ describe('RTE CR issues ', () => {
             done();
         });
     });
+
+    describe('929190 - Tab key not working properly inside list in RichTextEditor', () => {
+        let rteObj: RichTextEditor;
+        let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, stopPropagation: () => { }, shiftKey: false, which: 9, key: 'Tab', keyCode: 9, target: document.body };
+        let ShiftTab: any = { type: 'keydown', preventDefault: () => { }, stopPropagation: () => { }, shiftKey: true, which: 9, key: 'Tab', keyCode: 9, target: document.body };
+        let domSelection: NodeSelection = new NodeSelection();
+        beforeEach((done: DoneFn) => {
+            rteObj = renderRTE({
+                value: `<p>hello world this is me</p>`,
+                enableTabKey: true,
+                toolbarSettings: {
+                    items: ['Undo', 'Redo']
+                },
+                undoRedoTimer: 0
+            });
+            done();
+        });
+        it('Apply tab key in list', (done: DoneFn) => {
+            rteObj.value=`<ul id='ul'><li id='one'>Basic features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id='two'>The toolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li></ul>`;
+            rteObj.dataBind();
+            let divElement: HTMLElement = rteObj.inputElement.querySelector('#one');
+            setCursorPoint(divElement.firstChild as Element, 5);
+            (rteObj as any).keyDown(keyBoardEvent);
+            let value = rteObj.inputElement.querySelector('#ul');
+            expect(value.innerHTML=== `<li id="one">Basic&nbsp;&nbsp;&nbsp;&nbsp; features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id="two">The toolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li>`).toBe(true);
+            divElement= rteObj.inputElement.querySelector('#two');
+            setCursorPoint(divElement.firstChild as Element, 5);
+            (rteObj as any).keyDown(keyBoardEvent);
+            value = rteObj.inputElement.querySelector('#ul');
+            expect(value.innerHTML=== `<li id="one">Basic&nbsp;&nbsp;&nbsp;&nbsp; features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id="two">The t&nbsp;&nbsp;&nbsp;&nbsp;oolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li>`).toBe(true);
+            divElement= rteObj.inputElement.querySelector('#one');
+            setCursorPoint(divElement.firstChild as Element, 0);
+            (rteObj as any).keyDown(keyBoardEvent);
+            value = rteObj.inputElement.querySelector('#ul');
+            expect(value.innerHTML=== `<li style="list-style-type: none;"><ul><li id="one">Basic&nbsp;&nbsp;&nbsp;&nbsp; features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li></ul></li><li id="two">The t&nbsp;&nbsp;&nbsp;&nbsp;oolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li>`).toBe(true);
+            done();
+        });
+        afterEach((done) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
+    describe('936824 - The Shift + Tab behavior needs to be changed when enableTabKey is enabled in RichTextEditor', () => {
+        let rteObj: RichTextEditor;
+        let ShiftTab: any = { type: 'keydown', preventDefault: () => { }, stopPropagation: () => { }, shiftKey: true, which: 9, key: 'Tab', keyCode: 9, target: document.body };
+        let domSelection: NodeSelection = new NodeSelection();
+        beforeEach((done: DoneFn) => {
+            rteObj = renderRTE({
+                value: `<p>hello world this is me</p>`,
+                enableTabKey: true,
+                toolbarSettings: {
+                    items: ['Undo', 'Redo']
+                },
+                undoRedoTimer: 0
+            });
+            done();
+        });
+        it('Apply shift tab key in list', (done: DoneFn) => {
+            rteObj.value=`<ul id='ul'><li id='one'>Basic features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id='two'>The toolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li></ul>`;
+            rteObj.dataBind();
+            let divElement: HTMLElement = rteObj.inputElement.querySelector('#one');
+            setCursorPoint(divElement.firstChild as Element, 5);
+            (rteObj as any).keyDown(ShiftTab);
+            let value = rteObj.inputElement.querySelector('#ul');
+            expect(value.innerHTML=== `<li id="one">Basic&nbsp;&nbsp;&nbsp;&nbsp; features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id="two">The toolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li>`).toBe(true);
+            divElement= rteObj.inputElement.querySelector('#two');
+            setCursorPoint(divElement.firstChild as Element, 5);
+            (rteObj as any).keyDown(ShiftTab);
+            (rteObj as any).keyDown(ShiftTab);
+            value = rteObj.inputElement.querySelector('#ul');
+            expect(value.innerHTML=== `<li id="one">Basic&nbsp;&nbsp;&nbsp;&nbsp; features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id="two">The t&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li>`).toBe(true);
+            divElement= rteObj.inputElement.querySelector('#one');
+            setCursorPoint(divElement.firstChild as Element, 0);
+            (rteObj as any).keyDown(ShiftTab);
+            expect(rteObj.value === `<ul id="ul"><li id="one">Basic features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li><li id="two">The toolbar has multi-row, expandable, and scrollable modes.</li><li>The Editor supports an inline toolbar, a floating toolbar, and custom toolbar items.</li></ul>`).toBe(true);
+            done();
+        });
+        it('Select and apply the Shift tab key  ', (done: DoneFn) => {
+            rteObj.value=`<p>hello world this is me</p>`;
+            let startElement = rteObj.inputElement.querySelector('p');
+            setCursorPoint(startElement.firstChild as Element, 5);
+            (rteObj as any).keyDown(ShiftTab);
+            let value = rteObj.inputElement.querySelector('p');
+            expect(value.innerHTML=== `hello&nbsp;&nbsp;&nbsp;&nbsp; world this is me`).toBe(true);
+            done();
+        });
+        afterEach((done) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
 
     describe('892829 - Setting layoutOption Break and width 100 percent in insertVideoSettings not working properly in RichTextEditor', () => {
         let rteEle: HTMLElement;
@@ -1094,7 +1416,7 @@ describe('RTE CR issues ', () => {
         beforeAll(() => {
             rteObj = renderRTE({
                 height: '200px',
-                value:  `<p><img alt=\"Logo\" src=\"https://ej2.syncfusion.com/angular/demos/assets/rich-text-editor/images/RTEImage-Feather.png\" style=\"width: 300px;\"> </p>`
+                value: `<p><img alt=\"Logo\" src=\"https://ej2.syncfusion.com/angular/demos/assets/rich-text-editor/images/RTEImage-Feather.png\" style=\"width: 300px;\"> </p>`
             });
         });
         it('Image get duplicated after the shift + enter is pressed twice', function (done: DoneFn): void {
@@ -1109,6 +1431,54 @@ describe('RTE CR issues ', () => {
                     expect(rteObj.inputElement.innerHTML).toBe('<p><br><br><img alt="Logo" src="https://ej2.syncfusion.com/angular/demos/assets/rich-text-editor/images/RTEImage-Feather.png" style="width: 300px;" class="e-rte-image e-imginline"> </p>');
                     done();
                 }, 100);
+            }, 100);
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+    });
+
+    describe('Bug 936820: Duplication of Video When Pressing Shift Enter After Selecting Inserted Video', () => {
+        let rteObj: RichTextEditor;
+        let keyboardEventArgs = {
+            preventDefault: function () { },
+            altKey: false,
+            ctrlKey: false,
+            shiftKey: true,
+            char: '',
+            key: '',
+            charCode: 13,
+            keyCode: 13,
+            which: 13,
+            code: 'Enter',
+            action: 'enter',
+            type: 'keydown'
+        };
+        beforeAll(() => {
+            rteObj = renderRTE({
+                height: '200px',
+                value: `<p><video controls style="width: 30%;"><source src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Ocean-Waves.mp4" type="video/mp4" /></video></p>`
+            });
+        });
+        it('Video get duplicated after the shift + enter is pressed', function (done: DoneFn): void {
+            const nodetext: any = rteObj.inputElement.childNodes[0];
+            const sel: void = new NodeSelection().setSelectionText(
+                document, nodetext, nodetext, 0, 0);
+            (<any>rteObj).keyDown(keyboardEventArgs);
+            setTimeout(() => {
+                expect(rteObj.inputElement.innerHTML).toBe('<p><span class="e-video-wrap" contenteditable="false"><video controls="" style="width: 30%;" class="e-rte-video e-video-inline"><source src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Ocean-Waves.mp4" type="video/mp4"></video></span><br><br></p>');
+                done();
+            }, 100);
+        });
+        it('Audio get duplicated after the shift + enter is pressed', function (done: DoneFn): void {
+            rteObj.value = `<p><audio controls><source src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Audio.wav" type="audio/mp3"></audio></p>`;
+            const nodetext: any = rteObj.inputElement.childNodes[0];
+            const sel: void = new NodeSelection().setSelectionText(
+                document, nodetext, nodetext, 0, 0);
+            (<any>rteObj).keyDown(keyboardEventArgs);
+            setTimeout(() => {
+                expect(rteObj.inputElement.innerHTML).toBe('<p><span class="e-audio-wrap" style="width:300px; margin:0 auto;" contenteditable="false"><span class="e-clickelem"><audio controls="" class="e-rte-audio e-audio-inline"><source src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Audio.wav" type="audio/mp3"></audio></span></span><br></p>');
+                done();
             }, 100);
         });
         afterAll(() => {
@@ -1415,6 +1785,34 @@ describe('RTE CR issues ', () => {
             done();
         });
     });
+
+    describe('933152 - The Div element is removed from the content when pressing the Enter key followed by the Backspace key', () => {
+        let rteObj: RichTextEditor;
+        beforeAll(() => {
+            rteObj = renderRTE({
+                value: `<p><br/><br/></p><div id="user_email_signature_content"><p style="line-height: 1.5;"><span style="font-size: 12pt;"><span style="font-family: Trebuchet MS;">Testing</span></span></p></div>`,
+            });
+        });
+        it('Press Enter and Backspace before text in div', (done: Function) => {
+            rteObj.focusIn();
+            let targetElement = rteObj.element.querySelector('#user_email_signature_content p span span') as HTMLElement;
+            rteObj.formatter.editorManager.nodeSelection.setCursorPoint(document, targetElement, 0);
+            rteObj.inputElement.dispatchEvent(new KeyboardEvent('keydown', ENTERKEY_EVENT_INIT));
+            rteObj.inputElement.dispatchEvent(new KeyboardEvent('keyup', ENTERKEY_EVENT_INIT));
+            setTimeout(() => {
+                rteObj.inputElement.dispatchEvent(new KeyboardEvent('keydown', BACKSPACE_EVENT_INIT));
+                rteObj.inputElement.dispatchEvent(new KeyboardEvent('keyup', BACKSPACE_EVENT_INIT));
+                setTimeout(() => {
+                    expect(rteObj.value).toBe('<p><br><br></p><div id="user_email_signature_content"><p style="line-height: 1.5;"><span style="font-size: 12pt;"><span style="font-family: Trebuchet MS;">Testing</span></span></p></div>');
+                    done();
+                }, 100);
+            }, 100);
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+    });
+
     describe('929233 - Cursor Moves to the Last Position When Pressing Shift + Enter.', () => {
         let rteObj: RichTextEditor;
         beforeEach((done: Function) => {
@@ -1447,6 +1845,36 @@ describe('RTE CR issues ', () => {
             done();
         });
     });
+
+    describe('937051 - Text format gets collapsed when we press backspace within the list elements in the RichTextEditor.', () => {
+        let rteObj: RichTextEditor;
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                value: `<ol><li>asdfasdfas<br>fasdfa<br>asdfasdf<br>asdfasdf<br>asdsda<br></li></ol>`,
+            });
+            done();
+        });
+        it('Should handle backspace correctly in various list positions', (done) => {
+            var startNode = rteObj.inputElement.querySelector("OL li").childNodes[4];
+            setCursorPoint((startNode as Element), 0);
+            let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: false, key: 'backspace', action: 'backspace', keyCode: 8, stopPropagation: () => { }, shiftKey: false, which: 8 };
+            keyBoardEvent.target = rteObj.inputElement;
+            (rteObj as any).keyDown(keyBoardEvent);
+            expect((rteObj as any).inputElement.childNodes.length === 1).toBe(true);
+            rteObj.value = `<ol><li>asdfasdfas<br>fasdfa<br><strong><em><span style="text-decoration: underline;"><span style="text-decoration: line-through;" class="e-list-elem">asdfasdf</span></span></em></strong><br>asdfasdf<br>asdsda<br></li></ol>`;
+            rteObj.dataBind();
+            startNode = rteObj.inputElement.querySelector("OL li .e-list-elem").childNodes[0];
+            setCursorPoint((startNode as Element), 0);
+            (rteObj as any).keyDown(keyBoardEvent);
+            expect(rteObj.inputElement.childNodes.length === 1).toBe(true);
+            done();
+        });
+        afterAll((done: DoneFn) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
     describe('923869 - The empty textarea element is not inserted using the ExecuteCommandAsync method', () => {
         let rteObj: RichTextEditor;
         beforeAll(() => {
@@ -1457,33 +1885,6 @@ describe('RTE CR issues ', () => {
         it('The empty textarea element is not inserted using the ExecuteCommandAsync method', () => {
             rteObj.executeCommand('insertHTML',`<textarea id="text" name="text" miplato_id="text"></textarea>`);
             expect(rteObj.inputElement.innerHTML).toBe('<p id="rte"><textarea id="text" name="text" miplato_id="text"></textarea>RichTextEditor</p>');
-        });
-        afterAll(() => {
-            destroy(rteObj);
-        });
-    });
-
-    describe('933152 - The Div element is removed from the content when pressing the Enter key followed by the Backspace key', () => {
-        let rteObj: RichTextEditor;
-        beforeAll(() => {
-            rteObj = renderRTE({
-                value: `<p><br/><br/></p><div id="user_email_signature_content"><p style="line-height: 1.5;"><span style="font-size: 12pt;"><span style="font-family: Trebuchet MS;">Testing</span></span></p></div>`,
-            });
-        });
-        it('Press Enter and Backspace before text in div', (done: Function) => {
-            rteObj.focusIn();
-            let targetElement = rteObj.element.querySelector('#user_email_signature_content p span span') as HTMLElement;
-            rteObj.formatter.editorManager.nodeSelection.setCursorPoint(document, targetElement, 0);
-            rteObj.inputElement.dispatchEvent(new KeyboardEvent('keydown', ENTERKEY_EVENT_INIT));
-            rteObj.inputElement.dispatchEvent(new KeyboardEvent('keyup', ENTERKEY_EVENT_INIT));
-            setTimeout(() => {
-                rteObj.inputElement.dispatchEvent(new KeyboardEvent('keydown', BACKSPACE_EVENT_INIT));
-                rteObj.inputElement.dispatchEvent(new KeyboardEvent('keyup', BACKSPACE_EVENT_INIT));
-                setTimeout(() => {
-                    expect(rteObj.value).toBe('<p><br><br></p><div id="user_email_signature_content"><p style="line-height: 1.5;"><span style="font-size: 12pt;"><span style="font-family: Trebuchet MS;">Testing</span></span></p></div>');
-                    done();
-                }, 100);
-            }, 100);
         });
         afterAll(() => {
             destroy(rteObj);

@@ -110,7 +110,17 @@ describe('DropDownTree control', () => {
         let ddtreeObj: DropDownTree;
         let mouseEventArgs: any;
         let tapEvent: any;
-
+        let changed: boolean = false;
+        function onChange(args: DdtChangeEventArgs): void {
+            changed = true;
+            ddtreeObj.value = ['2'];
+        }
+        let changed1: boolean;
+        function onChange1(args: DdtChangeEventArgs): void {
+            changed1 = true;
+            let newListData = listData.filter(item => item.id !== 3);
+            ddtreeObj.fields.dataSource = newListData;
+        }
         beforeEach((): void => {
             mouseEventArgs = {
                 preventDefault: (): void => { },
@@ -177,7 +187,7 @@ describe('DropDownTree control', () => {
             var e = new MouseEvent("click", { view: window, bubbles: true, cancelable: true });
             ele.dispatchEvent(e);
             (ddtreeObj as any).onFocusOut();
-            expect(ddtreeObj.value.length).toBe(2);
+            expect(ddtreeObj.value.length).toBe(1);
         });
 
         it('Selecting values using fullrow and clearing it', () => {
@@ -311,6 +321,34 @@ describe('DropDownTree control', () => {
             expect((ddtreeObj as any).element.value).toBe("Victoria")
             expect((ddtreeObj as any).inputEle.classList.contains('e-chip-input')).toBe(true);
             expect((ddtreeObj as any).inputWrapper.querySelector('.e-overflow').classList.contains('e-icon-hide')).toBe(true);
+        });
+        it('Value changed dynamically in the change event', () => {
+            ddtreeObj = new DropDownTree({
+                fields: { dataSource: listData, value: "id", text: "name", parentValue: "pid", hasChildren: "hasChild", expanded: 'expanded' },
+                placeholder: "Select items",
+                showCheckBox: true,
+                changeOnBlur: false,
+                change: onChange
+            }, '#ddtree');
+            let li: any = (ddtreeObj as any).treeObj.element.querySelectorAll('li');
+            mouseEventArgs.target = li[1].querySelector('.e-list-text');
+            (ddtreeObj as any).treeObj.touchClickObj.tap(tapEvent);
+            expect(changed).toBe(true);
+            expect(ddtreeObj.value[0]).toBe('2');
+        });
+        it('testing value property restore after dynamic datasource change', () => {
+            ddtreeObj = new DropDownTree({
+                fields: { dataSource: listData, value: "id", text: "name", parentValue: "pid", hasChildren: "hasChild", expanded: 'expanded' },
+                placeholder: "Select items",
+                showCheckBox: true,
+                changeOnBlur: false,
+                change: onChange1
+            }, '#ddtree');
+            let li: any = (ddtreeObj as any).treeObj.element.querySelectorAll('li');
+            mouseEventArgs.target = li[1].querySelector('.e-list-text');
+            (ddtreeObj as any).treeObj.touchClickObj.tap(tapEvent);
+            expect(changed1).toBe(true);
+            expect(ddtreeObj.value[0]).toBe('2');
         });
         it('empty value at initial rendering - Default', () => {
             ddtreeObj = new DropDownTree({

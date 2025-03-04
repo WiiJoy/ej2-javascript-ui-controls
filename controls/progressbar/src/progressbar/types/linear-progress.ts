@@ -293,7 +293,7 @@ export class Linear {
             document.getElementById(linearLabelGroup.id).remove();
         }
         const labelValue: number = ((progress.value - progress.minimum) / (progress.maximum - progress.minimum)) * percentage;
-        const linearValue: number = (progress.value < progress.minimum) ? 0 : Math.round(labelValue);
+        const linearValue: number = (progress.value < progress.minimum) ? 0 : +labelValue.toFixed(2);
         const argsData: ITextRenderEventArgs = {
             cancel: false, text: labelText ? labelText : String(linearValue) + '%', color: progress.labelStyle.color || this.progress.themeStyle.linearLabelFont.color
         };
@@ -310,6 +310,9 @@ export class Linear {
                         (progress.progressRect.x + progressWidth / 2);
                     pos = (progress.enableRtl) ? (center <= defaultPos) : (center >= defaultPos);
                     posX = (progressWidth < textSize.width / 2) ? defaultPos : center;
+                    if (!progressWidth && !progress.enableRtl && posX / 2 < progress.progressRect.x + padding) {
+                        posX += padding;
+                    }
                 } else {
                     far = (progress.enableRtl) ?
                         ((progress.progressRect.x + progress.progressRect.width - progressWidth) + textSize.width / 2) :
@@ -320,6 +323,9 @@ export class Linear {
                         posX = far;
                     } else {
                         posX = defaultPos;
+                    }
+                    if (!progressWidth && !progress.enableRtl && posX / 2 < progress.progressRect.x + padding) {
+                        posX += padding;
                     }
                 }
             } else {

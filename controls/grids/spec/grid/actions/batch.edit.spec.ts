@@ -5317,15 +5317,26 @@ describe('EJ2-909241: Delete Icon is disabled in Toolbar when the Grid dataSourc
         }, done);
     });
 
-    it('add the record', () => {
+    it('add the record', (done: Function) => {
+        let batchAdd = (args?: any): void => {
+            expect((<any>gridObj.editModule.getBatchChanges()).addedRecords.length).toBe(1);
+            gridObj.batchAdd = null;
+            done();
+        };
+        gridObj.batchAdd = batchAdd;
         (<any>gridObj.toolbarModule).toolbarClickHandler({ item: { id: gridObj.element.id + '_add' } });
-        expect((<any>gridObj.editModule.getBatchChanges()).addedRecords.length).toBe(1);
+        
     });
 
-    it('delete the record', function () {
+    it('delete the record', function (done: Function) {
+        let batchDelete = (args?: any): void => {
+            expect((<any>gridObj.editModule.getBatchChanges()).addedRecords.length).toBe(0);
+            expect(gridObj.currentViewData.length).toBe(0);
+            gridObj.batchDelete = null;
+            done();
+        };
+        gridObj.batchDelete = batchDelete;
         (<any>gridObj.toolbarModule).toolbarClickHandler({ item: { id: gridObj.element.id + '_delete' } });
-        expect((<any>gridObj.editModule.getBatchChanges()).addedRecords.length).toBe(0);
-        expect(gridObj.currentViewData.length).toBe(0);
     });
 
     afterAll(() => {
@@ -5423,6 +5434,54 @@ describe('EJ2-927007: Save the cell with enter key functionality not working pro
         gridObj.element.querySelector('.e-editedbatchcell').querySelector('input').value = 'updated';
         gridObj.keyboardModule.keyAction({ action: 'enter', preventDefault: preventDefault, target: gridObj.element.querySelector('.e-input.e-defaultcell') } as any);
         expect(gridObj.element.querySelectorAll('.e-row')[9].querySelectorAll('td')[2].classList.contains('e-editedbatchcell')).toBeFalsy();
+        done();
+    });
+
+    afterAll(() => {
+        destroy(gridObj);
+        gridObj = null;
+    });
+});
+
+describe('EJ2-939503: The row gets selected upon editing in batch mode, even with selectionSettings.checkboxOnly enabled. =>', () => {
+    let gridObj: Grid;
+    beforeAll((done: Function) => {
+        gridObj = createGrid(
+        {
+            dataSource: data.slice(0,11),
+            editSettings: { allowEditing: true, allowAdding: true, allowDeleting: true, mode: 'Batch' },
+            selectionSettings: { checkboxOnly: true },
+            toolbar: ['Add', 'Edit', 'Delete', 'Update', 'Cancel'],
+            columns: [
+                { type: 'checkbox', width: 50 },
+                {
+                    field: 'OrderID', isPrimaryKey: true, headerText: 'Order ID', textAlign: 'Right',
+                    validationRules: { required: true }, width: 120
+                },
+                {
+                    field: 'CustomerID', headerText: 'Customer ID', width: 140
+                },
+                { field: 'ShipName', headerText: 'Ship Name', width: 170 },
+                {
+                    field: 'ShipCountry', headerText: 'Ship Country', editType: 'dropdownedit', width: 150
+                }
+            ],
+            
+        }, done);
+    });
+
+    it('edit cell', (done: Function) => {
+        let cellEdit = (args?: any): void => {
+            expect(gridObj.isEdit).toBeFalsy();
+            gridObj.cellEdit = null;
+            done();
+        };
+        gridObj.cellEdit = cellEdit;
+        gridObj.editModule.editCell(0, 'CustomerID');
+    });
+
+    it('select the row', (done: Function) => {
+        expect(gridObj.getRows()[0].firstElementChild.classList.contains('e-selectionbackground')).toBeFalsy();
         done();
     });
 

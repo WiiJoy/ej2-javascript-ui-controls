@@ -487,7 +487,7 @@ describe('Selection commands', () => {
         let node1: Node = document.getElementById('format6');
         domSelection.setSelectionText(document, node1, node1, 0, node1.childNodes.length);
         SelectionCommands.applyFormat(document, 'fontcolor', parentDiv, 'P',  null,'');
-        expect((document.getElementById('format6').childNodes[1] as HTMLElement).style.color).toEqual('');
+        expect((document.getElementById('format6').childNodes[1] as HTMLElement).nodeName).toEqual('#text');
     });
     it('Apply fontsize tag for list elements', () => {
         let node1: Node = document.getElementById('paragraph20');
@@ -922,6 +922,104 @@ describe('Remove non zero width space testing', () => {
         rteObj.formatter.editorManager.nodeSelection.setSelectionText(document, rteObj.inputElement.childNodes[0].childNodes[0], rteObj.inputElement.childNodes[0].childNodes[0], 0, 0);
         boldItem.click();
         expect(rteObj.inputElement.innerHTML).toBe('<p><br></p>');
+        done();
+    });
+});
+
+describe('Font Name Apply and Remove - Normal List', () => {
+    let rteObj: any;
+    let domSelection: NodeSelection = new NodeSelection();
+
+    beforeAll((done: DoneFn) => {
+        rteObj = renderRTE({
+            value: `<ul><li class='li1'>item1</li><li class='li2'>item2</li><li class='li3'>item3</li></ul>`,
+            toolbarSettings: {
+                items: ['FontName']
+            }
+        });
+        done();
+    });
+    afterAll((done: DoneFn) => {
+        destroy(rteObj);
+        done();
+    });
+    it('Test for applying and removing font name in a normal list', (done) => {
+        const range: Range = document.createRange();
+        range.setStart(rteObj.element.querySelector('.li1').childNodes[0], 0);
+        range.setEnd(rteObj.element.querySelector('.li3').childNodes[0], 5);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(document,
+            'fontname',
+            rteObj.element.querySelector('.e-content'),
+            'P',
+            null,
+            'Arial, Helvetica, sans-serif'
+        );
+        const listItems = rteObj.element.querySelectorAll('.li1, .li2, .li3');
+        listItems.forEach((li: HTMLElement) => {
+            expect(li.style.fontFamily).toEqual('Arial, Helvetica, sans-serif');
+        });
+        SelectionCommands.applyFormat(
+            document,
+            'fontname',
+            rteObj.element.querySelector('.e-content'),
+            'P',
+            null,
+            ''
+        );
+        listItems.forEach((li: HTMLElement) => {
+            expect(li.style.fontFamily).toEqual('');
+        });
+        done();
+    });
+});
+
+describe('Font Name Apply and Remove - Nested List', () => {
+    let rteObj: any;
+    let domSelection: NodeSelection = new NodeSelection();
+
+    beforeAll((done: DoneFn) => {
+        rteObj = renderRTE({
+            value: `<ul><li class='li1'>item1</li><li class='li2'>item2<ul><li class='li3'>nested1</li><li class='li4'>nested2</li></ul></li><li class='li5'>item3</li></ul>`,
+            toolbarSettings: {
+                items: ['FontName']
+            }
+        });
+        done();
+    });
+
+    afterAll((done: DoneFn) => {
+        destroy(rteObj);
+    });
+
+    it('Test for applying and removing font name in a nested list', (done) => {
+        const range: Range = document.createRange();
+        range.setStart(rteObj.element.querySelector('.li1').childNodes[0], 0);
+        range.setEnd(rteObj.element.querySelector('.li5').childNodes[0], 5);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(
+            document,
+            'fontname',
+            rteObj.element.querySelector('.e-content'),
+            'P',
+            null,
+            'Arial, Helvetica, sans-serif'
+        );
+        const listItems = rteObj.element.querySelectorAll('.li1, .li2, .li3, .li4, .li5');
+        listItems.forEach((li: HTMLElement) => {
+            expect(li.style.fontFamily).toEqual('Arial, Helvetica, sans-serif');
+        });
+        SelectionCommands.applyFormat(
+            document,
+            'fontname',
+            rteObj.element.querySelector('.e-content'),
+            'P',
+            null,
+            ''
+        );
+        listItems.forEach((li: HTMLElement) => {
+            expect(li.style.fontFamily).toEqual('');
+        });
         done();
     });
 });
@@ -1670,6 +1768,48 @@ describe('850066 - Font color does not applied not properly', () => {
     });
 });
 
+describe('930869 - Inconsistent Font Color Reset When Applying "No Color" to Multiple List Items', function () {
+    let rteObj: any;
+    let domSelection: NodeSelection = new NodeSelection();
+    beforeEach(() => {
+        rteObj = renderRTE({
+            value: `<ol><li class="li1">FristLI<ol><li class="li2">SecondLI<ol><li class="li3">ThirdLI</li><li class="li4">FourthLI<ol><li class="li5">FIfthLI<ol><li class="li6">SixthLI</li></ol></li></ol></li></ol></li></ol></li></ol>`,
+            toolbarSettings: {
+                items: ['FontColor']
+            }
+        });
+    });
+    afterEach(() => {
+        destroy(rteObj);
+    });
+    it('Test for font color for select all text node', function () {
+        var range = document.createRange();
+        range.setStart(rteObj.element.querySelector('.li1').childNodes[0], 0);
+        range.setEnd(rteObj.element.querySelector('.li6').childNodes[0], 7);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(document, 'fontcolor', rteObj.element.querySelector('.e-content'), 'P', null, 'rgb(255, 0, 0)');
+        var fristLI = rteObj.element.querySelector('.li1');
+        expect(fristLI.style.color === 'rgb(255, 0, 0)').toEqual(true);
+        var lastLI = rteObj.element.querySelector('.li6');
+        expect(lastLI.style.color === 'rgb(255, 0, 0)').toEqual(true);
+        let rteEle = rteObj.element;
+        let fontColorPicker: HTMLElement = <HTMLElement>rteEle.querySelectorAll(".e-toolbar-item .e-dropdown-btn")[0];
+        fontColorPicker.click();
+        let blackItem: HTMLElement = <HTMLElement>document.querySelector(".e-nocolor-item").nextElementSibling;
+        blackItem.click();
+        SelectionCommands.applyFormat(
+            document,
+            'fontcolor',
+            rteObj.element.querySelector('.e-content'),
+            'P',
+            null,
+            '' 
+        );
+        expect(fristLI.style.color).toEqual('');
+        expect(lastLI.style.color).toEqual('');
+
+    });
+});
 describe('872185 - Font family does not applied properly in nested list', () => {   
     let rteObj: any;
     let domSelection: NodeSelection = new NodeSelection();
@@ -1789,7 +1929,6 @@ describe('876813 - Font color did not apply all lists properly', () => {
         expect(fourthLI.style.fontSize === '18pt').toEqual(true);
     });
 });
-
 describe("876837: Bold format not applied to the list number when already bold content is present in the list content.", () => {
     let rteEle: HTMLElement;
     let rteObj: any;
@@ -2097,6 +2236,136 @@ describe(' - feature for code format using execCommand', () => {
         rteObj.formatter.editorManager.nodeSelection.setSelectionText(document, focusNode, focusNode, 0, 1);
         document.getElementById('custom_tbar').click();
         expect((rteObj as any).inputElement.innerHTML).toBe(`<p><code>Hello world this is the sample for code feature .</code></p>`);
+        done();
+    });
+});
+
+describe('876813 - Apply and revert font size for nested list', () => {
+    let rteObj: any;   
+    let domSelection: NodeSelection = new NodeSelection();
+    beforeEach((done: Function) => {
+        rteObj = renderRTE({
+            value: `<ul><li class=\"li1\">First item<ul><li class=\"li2\">Second item<ul><li class=\"li3\">Third item</li><li class=\"li4\">Fourth item<ul><li class=\"li5\">Fifth item<ul><li class=\"li6\">Sixth item</li></ul></li></ul></li></ul></li></ul></li></ul>`,
+            toolbarSettings: {
+                items: ['FontSize']
+            }
+        });
+        done();
+    });
+    
+    afterEach((done: DoneFn) => {
+        destroy(rteObj);
+        done();
+    });
+    it('Test for applying and reverting font size for inline styles in a nested list', (done) => {
+        const range: Range = document.createRange();
+        range.setStart(rteObj.element.querySelector('.li1').childNodes[0], 0);
+        range.setEnd(rteObj.element.querySelector('.li6').childNodes[0], 10);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(document, 'fontsize', rteObj.element.querySelector('.e-content'), 'P', null, '18pt');
+        const liElements = rteObj.element.querySelectorAll('li');
+        liElements.forEach((li: HTMLElement) => {
+            expect(li.style.fontSize).toEqual('18pt');
+        });
+        SelectionCommands.applyFormat(document, 'fontsize', rteObj.element.querySelector('.e-content'), 'P', null, '');
+        liElements.forEach((li: HTMLElement) => {
+            expect(li.style.fontSize).toEqual('');
+        });
+        done();
+    });
+});
+
+describe('938238 - MAC - Safari - Selection not maintaiend when bold format reverted', () => {
+    let rteObj: any;
+    let domSelection: NodeSelection = new NodeSelection();
+    let defaultUA: string = navigator.userAgent;
+    let defaultVendor: string = navigator.vendor;
+    let safari: string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15";
+    let safariVendor: string = "Apple Computer, Inc.";
+    beforeEach((done: Function) => {
+        Object.defineProperty(navigator, 'userAgent', {
+            value: safari,
+            configurable: true
+        });
+        Object.defineProperty(navigator, 'vendor', {
+            value: safariVendor,
+            configurable: true
+        });
+        rteObj = renderRTE({
+            value: `<p><strong class="startNode">The</strong> Rich <span style="text-decoration: underline;" class="endNode">Text</span> Editor</p>`,
+            toolbarSettings: {
+                items: ['FontSize']
+            }
+        });
+        done();
+    });
+
+    afterEach((done: DoneFn) => {
+        destroy(rteObj);
+        Browser.userAgent = defaultUA;
+        Object.defineProperty(navigator, 'vendor', {
+            value: defaultVendor,
+            configurable: true
+        });
+        done();
+    });
+    it('Safari - Testing selection is restored when bold format is reverted', (done) => {
+        const range: Range = document.createRange();
+        range.setStart(rteObj.element.querySelector('.startNode').childNodes[0], 0);
+        range.setEnd(rteObj.element.querySelector('.endNode').childNodes[0], 4);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(document, 'bold', rteObj.element.querySelector('.e-content'), 'P');
+        expect(rteObj.element.querySelector('.e-content').innerHTML).toBe('<p>The Rich <span style="text-decoration: underline;" class="endNode">Text</span> Editor</p>');
+        expect(window.getSelection().getRangeAt(0).startContainer.textContent === 'The').toBe(true);
+        done();
+    });
+});
+
+describe('939682: Console error occurs when applying bold (Ctrl+B) on a selected link in Safari browser', () => {
+    let rteObj: any;
+    let domSelection: NodeSelection = new NodeSelection();
+    let defaultUA: string = navigator.userAgent;
+    let defaultVendor: string = navigator.vendor;
+    let safari: string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15";
+    let safariVendor: string = "Apple Computer, Inc.";
+    beforeAll(() => {
+        Object.defineProperty(navigator, 'userAgent', {
+            value: safari,
+            configurable: true
+        });
+        Object.defineProperty(navigator, 'vendor', {
+            value: safariVendor,
+            configurable: true
+        });
+        rteObj = renderRTE({
+            value: `<p><img alt="Sky with <br><p style=" font-size:="" 16px;="" font-style:="" normal;="" font-weight:="" 400;="" text-align:="" start;="" text-indent:="" 0px;="" text-transform:="" none;="" white-space:="" text-decoration:="" margin:="" 0.5em="" 0px="" 1em;="" color:="" rgb(32,="" 33,="" 34);="" font-family:="" sans-serif;"="" class="e-rte-image e-imginline">In 1986, Midland re-organised its British and Irish operations, and as part of this process it separated its Northern Bank branches in the Republic of Ireland and transferred into a newly formed company called<span class="Apple-converted-space">&nbsp;</span><a href="https://en.wikipedia.org/wiki/Northern_Bank_(Ireland)_Limited" class="mw-redirect" title="Northern Bank (Ireland) Limited" style="text-decoration: none; color: var(--color-visited,#6a60b0); background: none; border-radius: 2px;">Northern Bank (Ireland) Limited</a>.<sup id="cite_ref-Freitag_4-1" class="reference" style="line-height: 1; white-space: nowrap; font-weight: normal; font-style: normal; font-size: 12.8px;"><a href="https://en.wikipedia.org/wiki/Danske_Bank_(Northern_Ireland)#cite_note-Freitag-4" style="text-decoration: none; color: var(--color-visited,#6a60b0); background: none; border-radius: 2px;"><span class="cite-bracket">[</span>4<span class="cite-bracket">]</span></a></sup></p><div class="mw-heading mw-heading3" style="font-style: normal; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; text-decoration: none; color: var(--color-emphasized,#101418); font-weight: bold; margin: 0.25em 0px; padding-top: 0.5em; padding-bottom: 0px; display: flow-root; font-size: 1.2em; line-height: 1.6; font-family: sans-serif;"><h3 id="Acquisition_by_National_Australia_Bank" style="color: inherit; font-weight: bold; margin: 0px 0px 0.25em; padding: 0px; display: inline; font-size: inherit; border: 0px; font-style: inherit; line-height: 1.6; font-family: inherit;">Acquisition by National Australia Ban</h3></div>`,
+            toolbarSettings: {
+                items: ['Bold']
+            }
+        });
+    });
+    afterAll(() => {
+        destroy(rteObj);
+        Object.defineProperty(navigator, 'userAgent', {
+            value: defaultUA,
+            configurable: true
+        });
+        Object.defineProperty(navigator, 'vendor', {
+            value: defaultVendor,
+            configurable: true
+        });
+    });
+    it('should apply bold format without console errors', (done) => {
+        const range: Range = document.createRange();
+        const startTextNode = rteObj.element.querySelector('p').childNodes[3].childNodes[0];
+        const endTextNode = rteObj.element.querySelector('h3').childNodes[0];
+        const startOffset = startTextNode.textContent.indexOf('rthern');
+        const endOffset = endTextNode.textContent.indexOf('Ba') + 2;
+        range.setStart(startTextNode, startOffset);
+        range.setEnd(endTextNode, endOffset);
+        domSelection.setRange(document, range);
+        SelectionCommands.applyFormat(document, 'bold', rteObj.element.querySelector('.e-content'), 'P');
+        expect(rteObj.element.querySelector('strong')).not.toBeNull();
         done();
     });
 });

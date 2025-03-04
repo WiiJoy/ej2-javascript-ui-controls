@@ -1,14 +1,14 @@
 import { Spreadsheet } from '../base/index';
 import { ICellRenderer, CellRenderEventArgs, inView, CellRenderArgs, renderFilterCell, deleteNote, showNote } from '../common/index';
-import { createHyperlinkElement, checkPrevMerge, createImageElement, IRenderer, getDPRValue, createNoteIndicator } from '../common/index';
-import { removeAllChildren } from '../common/index';
-import { getColumnHeaderText, CellStyleModel, CellFormatArgs, getRangeIndexes, getRangeAddress, CheckCellValidArgs, isValidation, validationHighlight } from '../../workbook/common/index';
+import { createHyperlinkElement, checkPrevMerge, createImageElement, IRenderer, createNoteIndicator } from '../common/index';
+import { removeAllChildren, setRowEleHeight } from '../common/index';
+import { getColumnHeaderText, CellStyleModel, CellFormatArgs, getRangeIndexes, getRangeAddress } from '../../workbook/common/index';
 import { CellStyleExtendedModel, setChart, refreshChart, getCellAddress, ValidationModel, MergeArgs } from '../../workbook/common/index';
 import { CellModel, SheetModel, skipDefaultValue, isHiddenRow, RangeModel, isHiddenCol, isImported } from '../../workbook/index';
-import { getRowHeight, setRowHeight, getCell, getColumnWidth, getSheet, setCell } from '../../workbook/base/index';
+import { getRowHeight, getCell, getColumnWidth, getSheet, setCell } from '../../workbook/base/index';
 import { addClass, attributes, extend, compile, isNullOrUndefined, detach, append } from '@syncfusion/ej2-base';
 import { getFormattedCellObject, applyCellFormat, workbookFormulaOperation, wrapEvent, applyCF } from '../../workbook/common/index';
-import { getTypeFromFormat, activeCellMergedRange, getCellIndexes, updateView, skipHiddenIdx } from '../../workbook/index';
+import { getTypeFromFormat, activeCellMergedRange, updateHighlight, getCellIndexes, updateView, skipHiddenIdx } from '../../workbook/index';
 import { checkIsFormula, ApplyCFArgs, NumberFormatArgs, ExtendedCellModel, calculateFormula } from '../../workbook/common/index';
 import { isInMultipleRange, addListValidationDropdown } from './../../workbook/common/index';
 /**
@@ -76,7 +76,7 @@ export class CellRenderer implements ICellRenderer {
         }
         args.isRefresh = false;
         args.skipFormatCheck = isImported(this.parent);
-        this.update(args);
+        const isTemplateCell: boolean = this.update(args);
         if (args.checkCF && args.cell && sheet.conditionalFormats && sheet.conditionalFormats.length) {
             this.parent.notify(
                 applyCF, <ApplyCFArgs>{ indexes: [args.rowIdx, args.colIdx], cell: args.cell, ele: args.td, isRender: true });
@@ -93,20 +93,15 @@ export class CellRenderer implements ICellRenderer {
             args.colIdx, needHeightCheck: false, row: args.row };
         this.parent.trigger('beforeCellRender', evtArgs);
         if (!sheet.rows[args.rowIdx] || !sheet.rows[args.rowIdx].customHeight) {
-            if (evtArgs.needHeightCheck || (evtArgs.element && evtArgs.element.children.length && !args.cell.wrap)) {
+            if (evtArgs.needHeightCheck || (isTemplateCell && evtArgs.element && evtArgs.element.children.length)) {
                 const clonedCell: HTMLElement = evtArgs.element.cloneNode(true) as HTMLElement;
                 clonedCell.style.width = getColumnWidth(sheet, args.colIdx, true) + 'px';
                 this.tableRow.appendChild(clonedCell);
             }
             if (args.lastCell && this.tableRow.childElementCount) {
-                const tableRow: HTMLElement = args.row || this.parent.getRow(args.rowIdx);
-                const previouseHeight: number = getRowHeight(sheet, args.rowIdx);
                 const rowHeight: number = this.getRowHeightOnInit();
-                if (rowHeight > previouseHeight) {
-                    const dprHgt: number = getDPRValue(rowHeight);
-                    tableRow.style.height = `${dprHgt}px`;
-                    (args.hRow || this.parent.getRow(args.rowIdx, this.parent.getRowHeaderTable())).style.height = `${dprHgt}px`;
-                    setRowHeight(sheet, args.rowIdx, rowHeight);
+                if (rowHeight > getRowHeight(sheet, args.rowIdx)) {
+                    setRowEleHeight(this.parent, sheet, rowHeight, args.rowIdx, args.row, args.hRow);
                 }
                 this.tableRow.innerText = '';
             }
@@ -124,8 +119,9 @@ export class CellRenderer implements ICellRenderer {
         }
     }
 
-    private update(args: CellRenderArgs): void {
+    private update(args: CellRenderArgs): boolean {
         const sheet: SheetModel = this.parent.getActiveSheet();
+        let isTemplateCell: boolean;
         // In SF-425413 ticket, we suggested to add the template property in the cell model to render the template using updateCell method.
         if (!args.isRefresh || (args.cell && (args.cell as ExtendedCellModel).template)) {
             const compiledTemplate: string | Element[] = this.processTemplates(args.cell, args.rowIdx, args.colIdx);
@@ -137,6 +133,7 @@ export class CellRenderer implements ICellRenderer {
                     append(compiledTemplate, args.td);
                 }
                 args.td.classList.add('e-cell-template');
+                isTemplateCell = true;
             }
         }
         if (args.isRefresh) {
@@ -148,7 +145,9 @@ export class CellRenderer implements ICellRenderer {
                 this.mergeFreezeCol(sheet, args.rowIdx, args.colIdx, args.td.colSpan, true);
                 args.td.removeAttribute('colSpan');
             }
-            if (this.checkMerged(args)) { return; }
+            if (this.checkMerged(args)) {
+                return false;
+            }
             if (args.cell && !args.cell.hyperlink) {
                 const hyperlink: Element = args.td.querySelector('.e-hyperlink');
                 if (hyperlink) {
@@ -192,6 +191,7 @@ export class CellRenderer implements ICellRenderer {
                 } else { style = args.cell.style; }
             }
             if (formatArgs.color !== undefined) {
+                style = Object.assign({}, style);
                 style.color = formatArgs.color;
             }
             this.createImageAndChart(args);
@@ -269,28 +269,15 @@ export class CellRenderer implements ICellRenderer {
             sheet.columns[args.colIdx].validation);
         if (validation && (!validation.address || isInMultipleRange(validation.address, args.rowIdx, args.colIdx))) {
             if (validation.isHighlighted) {
-                const sheetIdx: number = this.parent.activeSheetIndex;
-                if (validation && this.parent.allowDataValidation) {
-                    const cValue: string = args.cell && (args.cell.value || <unknown>args.cell.value === 0) ? args.cell.value : '';
-                    const validEventArgs: CheckCellValidArgs = {
-                        value: cValue, range: [args.rowIdx, args.colIdx],
-                        sheetIdx: sheetIdx, td: args.td, isValid: true
-                    };
-                    this.parent.notify(isValidation, validEventArgs);
-                    if (!validEventArgs.isValid) {
-                        if (!isHiddenRow(sheet, args.rowIdx) && sheetIdx === this.parent.activeSheetIndex) {
-                            this.parent.notify(validationHighlight, {
-                                isRemoveHighlightedData: false, rowIdx: args.rowIdx, colIdx: args.colIdx, td: args.td
-                            });
-                        }
-                    }
-                }
+                args.validation = validation;
+                this.parent.notify(updateHighlight, args);
             }
             if (validation.type === 'List' && !args.isRefresh && args.address === sheet.activeCell) {
                 args.validation = validation;
                 this.parent.notify(addListValidationDropdown, args);
             }
         }
+        return isTemplateCell;
     }
     private applyStyle(args: CellRenderArgs, style: CellStyleModel): void {
         if (Object.keys(style).length || Object.keys(this.parent.commonCellStyle).length || args.lastCell) {

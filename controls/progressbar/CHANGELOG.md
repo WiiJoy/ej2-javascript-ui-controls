@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### ProgressBar
+
+#### Bug Fixes
+
+- `#I690917` - Now, the tooltip renders properly when updating the progress value on data binding.
+
+## 28.2.6 (2025-02-18)
+
+### ProgressBar
+
+#### Bug Fixes
+
+- `#I558909` - The progress bar label position is now correct when the progress value is zero.
+
+## 28.2.4 (2025-02-04)
+
+### ProgressBar
+
+#### Bug Fixes
+
+- `#I682906` - The progress bar label now renders correctly with the exact number of digits.
+
 ## 25.1.35 (2024-03-15)
 
 ### ProgressBar

@@ -7,6 +7,7 @@ import { Rect } from '@syncfusion/ej2-drawings';
 import { PdfPage } from '@syncfusion/ej2-pdf';
 import { AutoComplete } from '@syncfusion/ej2-dropdowns';
 import { regex } from '@syncfusion/ej2-inputs';
+import { TaskPriorityLevel } from '../base/pdfviewer-utlis';
 const searchTextCollection: any = [];
 /**
  * TextSearch module
@@ -1892,7 +1893,7 @@ export class TextSearch {
                             currentPage._pageDictionary._map.MediaBox;
                     }
                     if (viewPortWidth >= pageWidth || !this.pdfViewer.tileRenderingSettings.enableTileRendering) {
-                        this.pdfViewerBase.pdfViewerRunner.postMessage({
+                        this.pdfViewerBase.pdfViewerRunner.addTask({
                             pageIndex: pageIndex,
                             message: 'renderPageSearch',
                             zoomFactor: proxy.pdfViewerBase.getZoomFactor(),
@@ -1900,9 +1901,9 @@ export class TextSearch {
                             textDetailsId: textDetailsId,
                             cropBoxRect: cropBoxRect,
                             mediaBoxRect: mediaBoxRect
-                        });
+                        }, TaskPriorityLevel.High);
                     } else {
-                        this.pdfViewerBase.pdfViewerRunner.postMessage({
+                        this.pdfViewerBase.pdfViewerRunner.addTask({
                             pageIndex: pageIndex,
                             message: 'renderImageAsTileSearch',
                             zoomFactor: zoomFactor,
@@ -1914,9 +1915,9 @@ export class TextSearch {
                             textDetailsId: textDetailsId,
                             cropBoxRect: cropBoxRect,
                             mediaBoxRect: mediaBoxRect
-                        });
+                        }, TaskPriorityLevel.High);
                     }
-                    this.pdfViewerBase.pdfViewerRunner.onmessage = function (event: any): void {
+                    this.pdfViewerBase.pdfViewerRunner.onMessage(function (event: any): void {
                         switch (event.data.message) {
                         case 'imageRenderedSearch':
                             if (event.data.message === 'imageRenderedSearch') {
@@ -2059,7 +2060,7 @@ export class TextSearch {
                             }
                             break;
                         }
-                    };
+                    });
                 }
 
             }
@@ -2549,11 +2550,15 @@ export class TextSearch {
         const top: any = startBound.Y;
         let width: number = 0;
         let height: any = startBound.Height;
+        let lastRight: number = 0;
         for (let k: number = 0; k < searchText.length; k++) {
             const currentBound: any = characterBounds[parseInt((matchIndex + k).toString(), 10)].Bounds;
-            width += currentBound.Width;
             height = Math.max(height, currentBound.Height);
+            if (k === searchText.length - 1){
+                lastRight = currentBound.Right;
+            }
         }
+        width = lastRight - left;
         return {
             x: left,
             y: top,

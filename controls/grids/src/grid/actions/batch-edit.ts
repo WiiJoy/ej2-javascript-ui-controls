@@ -103,7 +103,7 @@ export class BatchEdit {
     }
 
     private batchCancel(): void {
-        this.parent.focusModule.restoreFocus();
+        this.parent.focusModule.restoreFocus({ requestType: 'batchCancel' });
     }
 
     private dataBound(): void {
@@ -513,6 +513,7 @@ export class BatchEdit {
             }
             gObj.trigger(events.batchDelete, beforeBatchDeleteArgs);
             gObj.notify(events.batchDelete, { rows: this.parent.getRowsObject() });
+            gObj.focusModule.restoreFocus({ requestType: 'batchDelete' });
             gObj.notify(events.toolbarRefresh, {});
             if (!gObj.getContentTable().querySelector('tr.e-row')) {
                 gObj.renderModule.renderEmptyRow();
@@ -687,9 +688,7 @@ export class BatchEdit {
         this.field = field;
         this.isAdd = isAdd;
         let visibleRows: Element[] = gObj.getDataRows();
-        if (gObj.allowGrouping && gObj.groupSettings.columns.length && !gObj.groupSettings.enableLazyLoading) {
-            visibleRows = visibleRows.filter((row: HTMLElement) => row.style.display !== 'none');
-        }
+        visibleRows = visibleRows.filter((row: HTMLElement) => row.style.display !== 'none' && !row.classList.contains('e-childrow-hidden'));
         const lastRowIndex: number = parseInt(visibleRows[visibleRows.length - 1].getAttribute('data-rowindex'), 10);
         const checkEdit: boolean = gObj.isEdit && !(this.cellDetails.column.field === field
             && (this.cellDetails.rowIndex === index && lastRowIndex !== index && this.prevEditedBatchCell));
@@ -752,8 +751,9 @@ export class BatchEdit {
                 cellEditArgs.cell.classList.remove('e-updatedtd');
             }
             gObj.isEdit = true;
+            const checkSelect: boolean = !isNullOrUndefined(cellEditArgs.row.querySelector('.e-selectionbackground')) ? true : false;
             gObj.clearSelection();
-            if (!gObj.isCheckBoxSelection || !gObj.isPersistSelection) {
+            if ((!gObj.isCheckBoxSelection || !gObj.isPersistSelection) && (checkSelect || !gObj.selectionSettings.checkboxOnly)) {
                 gObj.selectRow(this.cellDetails.rowIndex, true);
             }
             this.renderer.update(cellEditArgs);

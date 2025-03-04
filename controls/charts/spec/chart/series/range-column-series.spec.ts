@@ -703,7 +703,7 @@ describe('Chart', () => {
                 let element: HTMLElement = document.getElementById('container_Series_0_DataLabel_5');
                 expect(element.children[0].innerHTML).toBe('34 : -22');
                 expect(element.style.backgroundColor).toBe('transparent');
-                expect(element.style.color).toBe('black');
+                expect(element.style.color).toBe('');
                 done();
             };
             chartObj.series[0].marker.dataLabel.template = '<div>${point.high} : ${point.low}</div>';
@@ -715,7 +715,7 @@ describe('Chart', () => {
                 let element: HTMLElement = document.getElementById('container_Series_0_DataLabel_5');
                 expect(element.children[0].innerHTML).toBe('80');
                 expect(element.style.backgroundColor).toBe('transparent');
-                expect(element.style.color).toBe('black');
+                expect(element.style.color).toBe('');
                 done();
             };
             chartObj.series[0].marker.dataLabel.template = '#template';
@@ -957,7 +957,7 @@ describe('Chart', () => {
             loaded = (args: Object): void => {
                 let axis1: Element = document.getElementById('containerAxisLine_2');
                 let axisCollection: Element = document.getElementById('containerAxisInsideCollection');
-                expect(+axisCollection.childElementCount).toEqual(19);
+                expect(+axisCollection.childElementCount).toEqual(17);
                 let seriesCollection: Element = document.getElementById('containerSeriesCollection');
                 expect(+seriesCollection.childElementCount).toEqual(11);
 

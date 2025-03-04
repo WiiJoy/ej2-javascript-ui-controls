@@ -139,16 +139,19 @@ export class FormFieldsBase {
             const imageUrl: string = (stampObjects.toString()).split(',')[1];
             const left: number = this.convertPixelToPoint(boundsObject.left);
             const top: number = this.convertPixelToPoint(boundsObject.top);
-            const width: number = this.convertPixelToPoint(boundsObject.width);
-            const height: number = this.convertPixelToPoint(boundsObject.height);
+            let width: number = this.convertPixelToPoint(boundsObject.width);
+            let height: number = this.convertPixelToPoint(boundsObject.height);
+            if (page.rotation === PdfRotationAngle.angle90 || page.rotation === PdfRotationAngle.angle270) {
+                [width, height] = [height, width];
+            }
             const rubberStampAnnotation: PdfRubberStampAnnotation = new PdfRubberStampAnnotation(left, top, width, height);
             const bitmap: PdfImage = new PdfBitmap(imageUrl);
             const graphics: PdfGraphics = page.graphics;
             const appearance: PdfTemplate = rubberStampAnnotation.appearance.normal;
             rubberStampAnnotation._dictionary.set('NM', signatureImage.signatureName.toString());
+            const rotationAngle: number = this.getRotateAngle(page.rotation);
+            rubberStampAnnotation.rotationAngle = Math.abs(rotationAngle);
             if (isAnnotationFlattern) {
-                const rotationAngle: number = this.getRotateAngle(page.rotation);
-                rubberStampAnnotation.rotationAngle = Math.abs(rotationAngle);
                 rubberStampAnnotation.flatten = true;
             }
             if (!isAnnotationFlattern) {
@@ -586,7 +589,8 @@ export class FormFieldsBase {
         textbox._dictionary.set('FontStyle', pdfFontStyle);
         // eslint-disable-next-line
         const hasUnicode: boolean = /[^\u0000-\u007F]/.test(textbox.text);
-        textbox.font = new PdfStandardFont(this.getFontFamily(formFieldAttributes.FontFamily),
+        const fontFamily: string = formFieldAttributes.FontFamily ? formFieldAttributes.FontFamily : formFieldAttributes.fontFamily;
+        textbox.font = new PdfStandardFont(this.getFontFamily(fontFamily),
                                            this.convertPixelToPoint(formFieldAttributes.fontSize), pdfFontStyle);
         if (!isNullOrUndefined(textbox.text.toString())) {
             const textFont: any = this.pdfViewer.pdfRenderer.FallbackFontCollection;
@@ -632,7 +636,8 @@ export class FormFieldsBase {
         comboBox.textAlignment = this.getTextAlignment(formFieldAttributes.textAlign);
         const pdfFontStyle: PdfFontStyle = this.getFontStyle(formFieldAttributes);
         comboBox._dictionary.set('FontStyle', pdfFontStyle);
-        comboBox.font = new PdfStandardFont(this.getFontFamily(formFieldAttributes.FontFamily),
+        const fontFamily: string = formFieldAttributes.FontFamily ? formFieldAttributes.FontFamily : formFieldAttributes.fontFamily;
+        comboBox.font = new PdfStandardFont(this.getFontFamily(fontFamily),
                                             this.convertPixelToPoint(formFieldAttributes.fontSize), pdfFontStyle);
         for (let i: number = 0; i < formFieldAttributes.option.length; i++) {
             const comboBoxText: string = formFieldAttributes.option[parseInt(i.toString(), 10)].itemName.toString();
@@ -788,7 +793,8 @@ export class FormFieldsBase {
         listBox.border.width = formFieldAttributes.thickness;
         const pdfFontStyle: PdfFontStyle = this.getFontStyle(formFieldAttributes);
         listBox._dictionary.set('FontStyle', pdfFontStyle);
-        listBox.font = new PdfStandardFont(this.getFontFamily(formFieldAttributes.FontFamily),
+        const fontFamily: string = formFieldAttributes.FontFamily ? formFieldAttributes.FontFamily : formFieldAttributes.fontFamily;
+        listBox.font = new PdfStandardFont(this.getFontFamily(fontFamily),
                                            this.convertPixelToPoint(formFieldAttributes.fontSize), pdfFontStyle);
         for (let i: number = 0; i < formFieldAttributes.option.length; i++) {
             const listBoxText: string = formFieldAttributes.option[parseInt(i.toString(), 10)].itemName.toString();
@@ -1730,7 +1736,9 @@ export class FormFieldsBase {
             formFields.IsTransparent = true;
         }
         formFields.FontColor = { R: listBoxField.color[0], G: listBoxField.color[1], B: listBoxField.color[2] };
-        formFields.BorderColor = { R: listBoxField.borderColor[0], G: listBoxField.borderColor[1], B: listBoxField.borderColor[2] };
+        if (!isNullOrUndefined(listBoxField.borderColor)) {
+            formFields.BorderColor = { R: listBoxField.borderColor[0], G: listBoxField.borderColor[1], B: listBoxField.borderColor[2] };
+        }
         formFields.Rotation = listBoxField.rotationAngle;
         formFields.IsReadonly = listBoxField.readOnly;
         formFields.IsRequired = listBoxField.required;
@@ -1744,9 +1752,9 @@ export class FormFieldsBase {
             }
         }
         for (let i: number = 0; i < itemCount; i++) {
-            const item: PdfListFieldItem = listBoxField.itemAt(i);
+            const item: any = listBoxField._kidsCount > 0 ? listBoxField.itemAt(i) : listBoxField._options[parseInt(i.toString(), 10)];
             if (item) {
-                formFields.TextList.push(item.text);
+                formFields.TextList.push(listBoxField._kidsCount > 0 ? item.text : item);
                 if (i === 0) {
                     formFields.Alignment = listBoxField.textAlignment;
                 }
@@ -2238,7 +2246,7 @@ export class FormFieldsBase {
         case PdfFontFamily.helvetica:
             return 'Helvetica';
         case PdfFontFamily.timesRoman:
-            return 'TimesRoman';
+            return 'Times New Roman';
         case PdfFontFamily.courier:
             return 'Courier';
         case PdfFontFamily.symbol:

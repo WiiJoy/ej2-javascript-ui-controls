@@ -15,6 +15,8 @@ import { hasClass } from '../base/util';
 import { ServiceLocator } from '../services/service-locator';
 import { ToolbarStatus } from '../../editor-manager/plugin/toolbar-status';
 import { IToolbarStatus } from '../../common/interface';
+import { isSafari } from '../../common/util';
+import { defaultLocale } from '../models/default-locale';
 
 /**
  * `Toolbar renderer` module is used to render toolbar in RichTextEditor.
@@ -37,6 +39,7 @@ export class ToolbarRenderer implements IRenderer {
     private l10n: L10n;
     private tooltipTargetEle: Element;
     public isDestroyed: boolean;
+    public isEscapeKey: boolean = false;
 
     /**
      * Constructor for toolbar renderer module
@@ -89,10 +92,12 @@ export class ToolbarRenderer implements IRenderer {
         if ( !this.parent.enabled) {
             return;
         }
-        this.parent.trigger('toolbarClick', args);
-        if (!this.parent.readonly || isNullOrUndefined(args.item)) {
-            this.parent.notify(events.toolbarClick, args);
-        }
+        const toolbarClickEventArgs: ClickEventArgs = { item: args.item, originalEvent: args.originalEvent, cancel: false };
+        this.parent.trigger('toolbarClick', toolbarClickEventArgs, (clickEventArgs: ClickEventArgs) => {
+            if ((!this.parent.readonly || isNullOrUndefined(args.item)) && !clickEventArgs.cancel) {
+                this.parent.notify(events.toolbarClick, clickEventArgs);
+            }
+        });
     }
 
     private dropDownSelected(args: MenuEventArgs): void {
@@ -153,7 +158,18 @@ export class ToolbarRenderer implements IRenderer {
     }
 
     private dropDownClose(args: MenuEventArgs): void {
-        this.parent.notify(events.selectionRestore, args);
+        if (!this.isEscapeKey)
+        {
+            this.parent.notify(events.selectionRestore, args);
+        }
+        this.isEscapeKey = false;
+    }
+
+    private dropDownBeforeClose(args: BeforeOpenCloseMenuEventArgs): void {
+        if (!isNOU(args.event) && (args.event as KeyboardEvent).key === 'Escape' && (args.event as KeyboardEvent).keyCode === 27) {
+            this.isEscapeKey = true;
+            this.parent.notify(events.preventQuickToolbarClose, args);
+        }
     }
 
     /**
@@ -234,6 +250,10 @@ export class ToolbarRenderer implements IRenderer {
                     args.cancel = true;
                     return;
                 }
+                if (isSafari() && args.event.type === 'keydown' && this.parent.formatter.editorManager.nodeSelection &&
+                    !this.parent.inputElement.contains(this.parent.getRange().startContainer)) {
+                    this.parent.notify(events.selectionRestore, args);
+                }
                 // Table styles dropdown preselect
                 if (proxy.parent.editorMode !== 'Markdown') {
                     const startNode: HTMLElement = proxy.parent.getRange().startContainer.parentElement;
@@ -246,7 +266,7 @@ export class ToolbarRenderer implements IRenderer {
                             }
                         }
                     }
-                    else if (!isNOU(tableEle) && !tableEle.classList.contains('e-dashed-border') && tableEle.classList.contains('e-alternate-rows') && window.getComputedStyle(trow).backgroundColor !== '') {
+                    if (!isNOU(tableEle) && tableEle.classList.contains('e-alternate-rows') && window.getComputedStyle(trow).backgroundColor !== '') {
                         for (let index: number = 0; index < args.element.childNodes.length; index++) {
                             if ((args.element.childNodes[index as number] as HTMLElement).classList.contains('e-alternate-rows')) {
                                 addClass([args.element.childNodes[index as number]] as Element[], 'e-active');
@@ -291,6 +311,24 @@ export class ToolbarRenderer implements IRenderer {
                             } else if (imageEle.classList.contains('e-imgcenter') || imageEle.classList.contains('e-imgbreak')) {
                                 index = 1;
                             } else if (imageEle.classList.contains('e-imgright')) {
+                                index = 2;
+                            }
+                            if (!isNOU(args.element.childNodes[index as number] as HTMLElement)) {
+                                addClass([args.element.childNodes[index as number] as Element], 'e-active');
+                            }
+                        }
+                    }
+                    //Video preselect
+                    const videoClosestNode: HTMLElement = startNode.closest('.e-video-wrap') as HTMLElement | null;
+                    const videoEle: HTMLElement = videoClosestNode ? videoClosestNode : startNode.querySelector('video') as HTMLElement | null;
+                    if (!isNOU(args.items[0 as number]) && (args.items[0 as number] as IDropDownItemModel).command === 'Videos') {
+                        if (!isNOU(videoEle)) {
+                            let index: number;
+                            if (videoEle.classList.contains('e-video-left') || videoEle.classList.contains('e-video-inline')) {
+                                index = 0;
+                            } else if (videoEle.classList.contains('e-video-center') || videoEle.classList.contains('e-video-break')) {
+                                index = 1;
+                            } else if (videoEle.classList.contains('e-video-right')) {
                                 index = 2;
                             }
                             if (!isNOU(args.element.childNodes[index as number] as HTMLElement)) {
@@ -361,6 +399,7 @@ export class ToolbarRenderer implements IRenderer {
                 proxy.parent.notify(events.beforeDropDownOpen, args);
             },
             close: this.dropDownClose.bind(this),
+            beforeClose: this.dropDownBeforeClose.bind(this),
             open: this.dropDownOpen.bind(this),
             beforeItemRender: this.beforeDropDownItemRender.bind(this)
         });
@@ -426,16 +465,18 @@ export class ToolbarRenderer implements IRenderer {
             enableRtl: this.parent.enableRtl,
             select: this.dropDownSelected.bind(this),
             beforeOpen: (args: BeforeOpenCloseMenuEventArgs): void => {
+                if (Browser.info.name === 'safari') {
+                    proxy.parent.notify(events.selectionRestore, {});
+                }
                 if (proxy.parent.editorMode !== 'Markdown' ) {
                     const startNode: HTMLElement = proxy.parent.getRange().startContainer.parentElement;
                     const listElem: Element = startNode.closest('LI');
                     const currentLiElem: HTMLElement = !isNOU(listElem) ? listElem.parentElement : null;
-                    if (!isNOU(currentLiElem) && (currentLiElem.nodeName === 'OL' || currentLiElem.nodeName === 'UL')) {
-                        if (currentLiElem.nodeName === 'UL' && (args.items[0 as number] as IDropDownItemModel).subCommand === 'NumberFormatList') {
-                            addClass([args.element.childNodes[0 as number]] as Element[], 'e-active');
-                        } else if (currentLiElem.nodeName === 'OL' && (args.items[0 as number] as IDropDownItemModel).subCommand === 'BulletFormatList') {
-                            addClass([args.element.childNodes[0 as number]] as Element[], 'e-active');
-                        } else {
+                    const currentAction: string = (args.items[0 as number] as IDropDownItemModel).subCommand;
+                    if (!isNOU(currentLiElem)) {
+                        const validNumberFormatAction: boolean  = (currentAction === 'NumberFormatList' && currentLiElem.nodeName === 'OL');
+                        const validBulletFormatAction: boolean  = (currentAction === 'BulletFormatList' && currentLiElem.nodeName === 'UL');
+                        if (validNumberFormatAction || validBulletFormatAction) {
                             let currentListStyle: string = currentLiElem.style.listStyleType.split('-').join('').toLocaleLowerCase();
                             currentListStyle = currentListStyle === 'decimal' ? 'number' : currentListStyle;
                             for (let index: number = 0; index < args.element.childNodes.length; index++) {
@@ -448,17 +489,12 @@ export class ToolbarRenderer implements IRenderer {
                                 }
                             }
                         }
-                    } else {
-                        addClass([args.element.childNodes[0 as number]] as Element[], 'e-active');
                     }
                 }
                 this.closeTooltip({target: args.event.target as HTMLElement});
                 if (proxy.parent.readonly || !proxy.parent.enabled) {
                     args.cancel = true;
                     return;
-                }
-                if (Browser.info.name === 'safari') {
-                    proxy.parent.notify(events.selectionRestore, {});
                 }
                 const element: HTMLElement = (args.event) ? (args.event.target as HTMLElement) : null;
                 proxy.currentElement = dropDown.element;
@@ -594,6 +630,7 @@ export class ToolbarRenderer implements IRenderer {
             },
             beforeClose: (dropDownArgs: BeforeOpenCloseMenuEventArgs): void => {
                 const element: HTMLElement = (dropDownArgs.event) ? (dropDownArgs.event.target as HTMLElement) : null;
+                this.dropDownBeforeClose(dropDownArgs);
                 if (dropDownArgs.event && dropDownArgs.event.type === 'click' && (element.classList.contains(CLS_COLOR_CONTENT)
                         || element.parentElement.classList.contains(CLS_COLOR_CONTENT))) {
                     const colorpickerValue: string = element.classList.contains(CLS_RTE_ELEMENTS) ? element.style.borderBottomColor :
@@ -614,11 +651,15 @@ export class ToolbarRenderer implements IRenderer {
                 }
             },
             close: (): void => {
-                proxy.parent.notify(events.selectionRestore, {});
+                if (!this.isEscapeKey)
+                {
+                    proxy.parent.notify(events.selectionRestore, {});
+                }
             }
         });
         dropDown.isStringTemplate = true; dropDown.createElement = proxy.parent.createElement; args.element.setAttribute('role', 'button');
         dropDown.appendTo(args.element);
+        args.element.setAttribute('aria-label', item === 'backgroundcolor' ? defaultLocale.backgroundColor : defaultLocale.fontColor);
         const popupElement: Element = document.getElementById(dropDown.element.id + '-popup');
         popupElement.setAttribute('aria-owns', this.parent.getID());
         dropDown.element.insertBefore(content, dropDown.element.querySelector('.e-caret'));
@@ -627,7 +668,9 @@ export class ToolbarRenderer implements IRenderer {
             proxy.parent.notify(events.selectionSave, {});
         };
         dropDown.element.onkeydown = (): void => {
-            proxy.parent.notify(events.selectionSave, {});
+            if (!isSafari() || isSafari() && proxy.parent.inputElement.contains(proxy.parent.getRange().startContainer)) {
+                proxy.parent.notify(events.selectionSave, {});
+            }
         };
         return dropDown;
     }

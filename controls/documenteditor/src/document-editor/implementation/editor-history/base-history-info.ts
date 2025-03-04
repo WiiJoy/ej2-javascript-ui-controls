@@ -688,7 +688,10 @@ export class BaseHistoryInfo {
                     this.owner.selectionModule.select(this.selectionEnd, this.selectionEnd);
                     this.undoRevisionForElements(insertTextPosition, endTextPosition, deletedNodes[deletedNodes.length - 1] as string);
                 }
-                this.removedNodes.push(deletedNodes[deletedNodes.length - 1] as string);
+                let id: string = deletedNodes[deletedNodes.length - 1] as string;
+                if (this.removedNodes.indexOf(id) === -1) {
+                    this.removedNodes.push(id);
+                }
                 deletedNodes = [];
             }
             if (this.action === 'Uppercase') {
@@ -948,7 +951,17 @@ export class BaseHistoryInfo {
         if (blockInfo.paragraph.isInsideTable && blockInfo.paragraph == this.owner.selection.getLastParagraph(blockInfo.paragraph.associatedCell)) {
             isLastChild = true;
         }
-        if (blockInfo.paragraph.getLength() == blockInfo.offset && !isLastChild) {
+        let isAtParagraphEnd: boolean = isNullOrUndefined(this.selectionEnd) ? true : false;
+        if (!isNullOrUndefined(this.selectionEnd)) {
+            const position: TextPosition = this.owner.selectionModule.getTextPosBasedOnLogicalIndex(this.selectionEnd);
+            const paragraphInfo: ParagraphInfo = this.owner.selectionModule.getParagraphInfo(position);
+            if (paragraphInfo.paragraph === blockInfo.paragraph) {
+                isAtParagraphEnd = paragraphInfo.paragraph.getLength() + 1 === paragraphInfo.offset;
+            } else {
+                isAtParagraphEnd = true;
+            }
+        }
+        if (blockInfo.paragraph.getLength() == blockInfo.offset && isAtParagraphEnd && !isLastChild) {
             blockInfo.offset++;
         }
         this.endRevisionLogicalIndex = this.owner.selectionModule.getHierarchicalIndex(blockInfo.paragraph, blockInfo.offset.toString());
@@ -1125,17 +1138,13 @@ export class BaseHistoryInfo {
                         this.editorHistory.currentHistoryInfo.action === 'PageBreak')) {
                         lastNode = deletedNodes[1];
                     }
-                    if(lastNode instanceof WCharacterFormat) {
-                        const newParagraph = new ParagraphWidget();
-                        newParagraph.characterFormat = lastNode;
-                        this.owner.editorModule.insertNewParagraphWidget(newParagraph, true);
-                        deletedNodes.splice(deletedNodes.indexOf(lastNode), 1);
-                        block = newParagraph;
-                    }
                     let skipinsert: boolean = false;
                     if (!isNullOrUndefined(this.isAcceptOrReject)) {
                         skipinsert = true;
                         if (!isNullOrUndefined(this.owner.selectionModule.start.paragraph.nextRenderedWidget) && this.owner.selectionModule.start.paragraph.nextRenderedWidget instanceof TableWidget) {
+                            skipinsert = false;
+                        } else if (this.action === 'BackSpace' && deletedNodes.length == 2 && lastNode instanceof ParagraphWidget && lastNode.isEmpty() && deletedNodes[1] instanceof ParagraphWidget && (deletedNodes[1] as ParagraphWidget).isEmpty()) {
+                            //When selecting the paramark and give backspace then adding two paragraph. So skipping it.
                             skipinsert = false;
                         }
                     }
@@ -1292,7 +1301,19 @@ export class BaseHistoryInfo {
                         wiget.characterFormat.removedIds = node.removedIds.slice();
                         this.owner.editorModule.constructRevisionFromID(wiget.characterFormat, true);
                     } else if (wiget.characterFormat.revisions.length > 0) {
-                        wiget.characterFormat = node.cloneFormat();
+                        for (let i: number = 0; i < wiget.characterFormat.revisions.length; i++) {
+                            let currentRevision: Revision = wiget.characterFormat.revisions[i];
+                            const index: number = currentRevision.range.indexOf(wiget.characterFormat);
+                            if (index !== -1) {
+                                currentRevision.range.splice(index, 1);
+                                this.owner.trackChangesPane.updateCurrentTrackChanges(currentRevision);
+                                if (currentRevision.range.length === 0) {
+                                    this.owner.revisions.remove(currentRevision);
+                                }
+                            }
+                        }
+                        node.ownerBase = wiget;
+                        wiget.characterFormat = node;
                     }
                 }
             } else if (node instanceof BodyWidget) {
@@ -1384,7 +1405,6 @@ export class BaseHistoryInfo {
                     item.revisions.splice(revisionIndex, 1);
                     let rangeIndex: number = currentRevision.range.indexOf(item);
                     currentRevision.range.splice(rangeIndex, 1);
-                    this.owner.trackChangesPane.updateCurrentTrackChanges(currentRevision);
                 }
                 if (currentRevision.range.length === 0) {
                     this.owner.revisions.remove(currentRevision);
@@ -1400,6 +1420,7 @@ export class BaseHistoryInfo {
                 }
             }
         }
+        this.owner.trackChangesPane.updateCurrentTrackChanges(currentRevision);
         this.removedNodes.push(id);
     }
 

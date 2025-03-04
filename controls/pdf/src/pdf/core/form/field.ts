@@ -2,8 +2,8 @@ import { _PdfDictionary, _PdfReference, _PdfName } from './../pdf-primitives';
 import { _PdfCrossReference } from './../pdf-cross-reference';
 import { PdfForm } from './form';
 import { PdfRadioButtonListItem, PdfStateItem, PdfWidgetAnnotation, PdfListFieldItem, _PaintParameter, PdfInteractiveBorder } from './../annotations/annotation';
-import { _getItemValue, _checkField, _removeReferences, _removeDuplicateReference, _updateVisibility, _styleToString, _getStateTemplate, _findPage, _getInheritableProperty, _getNewGuidString, _calculateBounds, _parseColor, _mapHighlightMode, _reverseMapHighlightMode, _mapBorderStyle, _getUpdatedBounds, _setMatrix, _obtainFontDetails, _isNullOrUndefined, _stringToPdfString, _mapFont } from './../utils';
-import { _PdfCheckFieldState, PdfFormFieldVisibility, _FieldFlag, PdfAnnotationFlag, PdfTextAlignment, PdfHighlightMode, PdfBorderStyle, PdfRotationAngle, PdfCheckBoxStyle, PdfFormFieldsTabOrder, PdfFillMode } from './../enumerator';
+import { _getItemValue, _checkField, _removeReferences, _removeDuplicateReference, _updateVisibility, _styleToString, _getStateTemplate, _findPage, _getInheritableProperty, _getNewGuidString, _calculateBounds, _parseColor, _mapHighlightMode, _reverseMapHighlightMode, _mapBorderStyle, _getUpdatedBounds, _setMatrix, _obtainFontDetails, _isNullOrUndefined, _stringToPdfString, _mapFont, _isRTLCharacters } from './../utils';
+import { _PdfCheckFieldState, PdfFormFieldVisibility, _FieldFlag, PdfAnnotationFlag, PdfTextAlignment, PdfHighlightMode, PdfBorderStyle, PdfRotationAngle, PdfCheckBoxStyle, PdfFormFieldsTabOrder, PdfFillMode, PdfTextDirection } from './../enumerator';
 import { PdfPage } from './../pdf-page';
 import { PdfDocument } from './../pdf-document';
 import { _PdfBaseStream } from './../base-stream';
@@ -1592,15 +1592,34 @@ export abstract class PdfField {
             fontDict = new _PdfDictionary(this._crossReference);
             resource.update('Font', fontDict);
         }
-        const keyName: _PdfName = _PdfName.get(_getNewGuidString());
-        const reference: _PdfReference = this._crossReference._getNextReference();
-        if (font instanceof PdfTrueTypeFont) {
-            if (this._font._pdfFontInternals) {
-                this._crossReference._cacheMap.set(reference, this._font._pdfFontInternals);
+        let keyName: _PdfName;
+        let reference: _PdfReference;
+        let hasFont: boolean = false;
+        if (this._font && (this._font._key !== null && typeof this._font._key !== 'undefined') && this._font._reference) {
+            keyName = _PdfName.get(this._font._key);
+            reference = this._font._reference;
+            hasFont = true;
+        } else {
+            keyName = _PdfName.get(_getNewGuidString());
+            reference = this._crossReference._getNextReference();
+            if (this._font) {
+                this._font._key = keyName.name;
                 this._font._reference = reference;
             }
-        } else if (this._font._dictionary) {
-            this._crossReference._cacheMap.set(reference, this._font._dictionary);
+        }
+        if (reference && !hasFont) {
+            if (font instanceof PdfTrueTypeFont) {
+                if (this._font._pdfFontInternals) {
+                    this._crossReference._cacheMap.set(reference, this._font._pdfFontInternals);
+                    this._font._reference = reference;
+                }
+            } else if (this._font._dictionary) {
+                this._crossReference._cacheMap.set(reference, this._font._dictionary);
+                fontDict.update(keyName.name, reference);
+                resource._updated = true;
+                document.form._dictionary.update('DR', resource);
+                document.form._dictionary._updated = true;
+            }
         }
         fontDict.update(keyName.name, reference);
         resource._updated = true;
@@ -1614,8 +1633,12 @@ export abstract class PdfField {
         if (this._dictionary.has('Kids')) {
             const widgetDictionary: _PdfDictionary[] = this._dictionary.getArray('Kids');
             for (let i: number = 0; i < widgetDictionary.length; i++) {
+                const widget: PdfWidgetAnnotation = this.itemAt(i);
                 const dictionary: _PdfDictionary = widgetDictionary[Number.parseInt(i.toString(), 10)];
                 dictionary.update('DA', defaultAppearance.toString());
+                if (widget) {
+                    widget._da = defaultAppearance;
+                }
             }
         } else if (this._dictionary.has('Subtype') && this._dictionary.get('Subtype').name === 'Widget') {
             this._dictionary.update('DA', defaultAppearance.toString());
@@ -2915,13 +2938,16 @@ export class PdfTextBoxField extends PdfField {
         const parameter: _PaintParameter = new _PaintParameter();
         parameter.bounds = [0, 0, bounds.width, bounds.height];
         const backcolor: number[] = widget.backColor;
-        if (isFlatten && backcolor) {
+        if (backcolor) {
             parameter.backBrush = new PdfBrush(backcolor);
         }
         parameter.foreBrush = new PdfBrush(widget.color);
         const border: PdfInteractiveBorder = widget.border;
         if (widget.borderColor) {
-            parameter.borderPen = new PdfPen(widget.borderColor, border.width);
+            if (border.width === 0) {
+                widget.borderColor = [255, 255, 255];
+            }
+            parameter.borderPen = new PdfPen(widget.borderColor,  border.width);
         }
         parameter.borderWidth = border.width;
         parameter.borderStyle = border.style;
@@ -2977,6 +3003,9 @@ export class PdfTextBoxField extends PdfField {
                 this._stringFormat = new PdfStringFormat(PdfTextAlignment.left, PdfVerticalAlignment.middle);
             }
         }
+        if (_isRTLCharacters(text)) {
+            this._stringFormat.textDirection = PdfTextDirection.rightToLeft;
+        }
         if (enableGrouping) {
             this._drawTextBox(graphics, parameter, text, pdfFont, stringFormat, this.multiLine, this.scrollable, this.maxLength);
         } else {
@@ -3016,7 +3045,7 @@ export class PdfTextBoxField extends PdfField {
                             }
                         } else {
                             if (format.alignment === PdfTextAlignment.center && current.length < maxLength) {
-                                const startlocation: number = maxLength / 2 - (Math.ceil(current.length / 2));
+                                const startlocation: number = Math.floor(maxLength / 2 - Math.ceil(current.length / 2));
                                 if (i >= startlocation && i < startlocation + current.length) {
                                     text = current[i - startlocation];
                                 } else {

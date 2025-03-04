@@ -506,17 +506,6 @@ export class Parser {
             text = '0-' + text;
             text = this.parseSimpleOperators(text, [this.tokenSubtract], [this.charSubtract]);
             text = text.split(this.tokenOr).join('-');
-        } else if (text.length > 0 && text.indexOf('u') > -1) {
-            // To parse - sign with brackets and cell references in the formula arguments. Ex: -(I13+I14+I12)/(-D2+D1) as arguments in formulas.
-            const textValue: string[] = text.split(this.parent.getParseArgumentSeparator());
-            for (let i: number = 0; i < textValue.length; i++) {
-                if (textValue[i as number].startsWith('u')) {
-                    let textExp: string = textValue[i as number].split('u').join('0-');
-                    textExp = this.parseSimpleOperators(textExp, [this.tokenSubtract], [this.charSubtract]);
-                    textValue[i as number] = textExp;
-                }
-            }
-            text = textValue.join(this.parent.getParseArgumentSeparator());
         } else if (text.length > 0 && text[0] === '+') {
             text = text.substring(1);
         } else if (text.length > 0 && text[text.length - 1] === '+') {
@@ -607,7 +596,9 @@ export class Parser {
                                 isLeftBool = true;
                             } else {
                                 j = j - 1;
-                                while (j > -1 && (this.parent.isUpperChar(text[j as number]) || this.parent.isDigit(text[j as number]))) {
+                                while (j > -1 && (this.parent.isUpperChar(text[j as number]) || // Check if character is uppercase alphabets.
+                                    this.parent.isDigit(text[j as number]) || // Check if character is a digit.
+                                    text[j as number] === '_')) { // Check if character is an underscore ('_'), for defined names cases.
                                     j = j - 1;
                                 }
                                 if (j > -1 && text[j as number] === this.sheetToken) {

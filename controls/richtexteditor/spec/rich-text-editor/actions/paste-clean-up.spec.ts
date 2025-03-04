@@ -4818,7 +4818,68 @@ StarSymbol"><span style="mso-list:Ignore"><span style="font:7.0pt &quot;Times Ne
             done();
         });
     });
-
+    describe('921860 - Nested list created after performing copy and pasting content from outlook', () => {
+        let editor: RichTextEditor;
+        beforeEach((done: DoneFn) => {
+            editor = renderRTE({
+                pasteCleanupSettings: {
+                    keepFormat: true
+                },
+                value:`<ul><li>Rich text Editor 1</li><li style="margin-top: 0px; margin-right: 0px; margin-bottom: 10px;">Rich text Editor 2</li><li style="margin-top: 0px; margin-right: 0px; margin-bottom: 10px;">Rich text Editor 3</li></ul>`
+            });
+            done();
+        });
+        afterEach((done: DoneFn) => {
+            destroy(editor);
+            done();
+        });
+        it('Paste the content at the end of the <li> element.', (done: DoneFn) => {
+            editor.focusIn();
+            var element: Node = editor.inputElement.querySelector("UL li").firstChild;
+            setCursorPoint(element as Element, (element as Text).length as number);
+            const clipBoardData: string = `<meta charset=\"UTF-8\"><ul type=\"disc\" style=\"font-style: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none; caret-color: rgb(36, 36, 36); color: rgb(36, 36, 36); font-family: &quot;Segoe UI&quot;, &quot;Segoe UI Web (West European)&quot;, -apple-system, BlinkMacSystemFont, Roboto, &quot;Helvetica Neue&quot;, sans-serif; font-size: 15px; margin-bottom: 0px;\"><li class=\"ulelement\" style=\"font-size: 11pt; font-family: Calibri, sans-serif; margin: 0px 0px 7.5pt; line-height: 18pt; color: black !important;\"><span data-olk-copy-source=\"MessageBody\" style=\"border: 0px; font-style: inherit; font-variant-caps: inherit; font-weight: inherit; font-stretch: inherit; font-size: 10.5pt; line-height: inherit; font-family: &quot;Segoe UI&quot;, sans-serif; font-size-adjust: inherit; font-kerning: inherit; font-variant-alternates: inherit; font-variant-ligatures: inherit; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-position: inherit; font-feature-settings: inherit; font-optical-sizing: inherit; font-variation-settings: inherit; margin: 0px; padding: 0px; vertical-align: baseline; color: inherit; letter-spacing: 0.25pt;\">Pressing enter key at the end of the line with P as enterKey API. -&nbsp;</span><span style=\"border: 0px; font-style: inherit; font-variant-caps: inherit; font-weight: inherit; font-stretch: inherit; font-size: 10.5pt; line-height: inherit; font-family: Inter; font-size-adjust: inherit; font-kerning: inherit; font-variant-alternates: inherit; font-variant-ligatures: inherit; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-position: inherit; font-feature-settings: inherit; font-optical-sizing: inherit; font-variation-settings: inherit; margin: 0px; padding: 0px; vertical-align: baseline; color: inherit; letter-spacing: 0.25pt;\">P, div, and Br tags</span></li></ul>`;
+            const dataTransfer: DataTransfer = new DataTransfer();
+            dataTransfer.setData('text/html', clipBoardData);
+            const pasteEvent: ClipboardEvent = new ClipboardEvent('paste', { clipboardData: dataTransfer } as ClipboardEventInit);
+            editor.onPaste(pasteEvent);
+            setTimeout(() => {
+                var pastedElm = editor.inputElement.querySelector(".ulelement").parentElement.nodeName == 'UL';
+                expect(pastedElm).toBe(true);
+                done();
+            }, 100);
+        });
+    });
+    describe('936593 - List Items Aligned Horizontally When Copying from Azure Task Description.', () => {
+        let editor: RichTextEditor;
+        beforeEach((done: DoneFn) => {
+            editor = renderRTE({
+                pasteCleanupSettings: {
+                    keepFormat: true,
+                    prompt: false
+                },
+            });
+            done();
+        });
+        afterEach((done: DoneFn) => {
+            destroy(editor);
+            done();
+        });
+        it('Pasting a UL element with display: flex and flex-direction styles.', (done: DoneFn) => {
+            editor.focusIn();
+            var element: Node = editor.inputElement.firstChild.childNodes[0];
+            setCursorPoint(element as Element, 0);
+            const clipBoardData: string = `<p style=" font-weight: 600; font-style: normal; text-indent: 0px; text-transform: none; white-space: normal; background-color: rgb(255, 255, 255); margin: 12px 0px 0px; font-size: 16px; color: rgb(17, 17, 17); font-family: -apple-system, Roboto, SegoeUI, &quot;Segoe UI&quot;, &quot;Helvetica Neue&quot;, Helvetica, &quot;Microsoft YaHei&quot;, &quot;Meiryo UI&quot;, Meiryo, &quot;Arial Unicode MS&quot;, sans-serif; text-align: left;">asdasdfasdfasdf</p><ol style=" padding-left: 40px; font-style: normal; font-weight: 400; text-indent: 0px; text-transform: none; white-space: normal; background-color: rgb(255, 255, 255); margin: 12px 0px 0px; display: flex; flex-direction: column; color: rgb(17, 17, 17); font-family: -apple-system, Roboto, SegoeUI, &quot;Segoe UI&quot;, &quot;Helvetica Neue&quot;, Helvetica, &quot;Microsoft YaHei&quot;, &quot;Meiryo UI&quot;, Meiryo, &quot;Arial Unicode MS&quot;, sans-serif; font-size: 16px; text-align: left;"><li style=" list-style: inherit;"><strong>JSON Serialization</strong>: The RichTextEditor should be able to serialize its content into a JSON format.</li><li style=" list-style: inherit;"><strong>JSON Deserialization</strong>: The editor should be able to load and render content from a JSON format.</li></ol>`;
+            const dataTransfer: DataTransfer = new DataTransfer();
+            dataTransfer.setData('text/html', clipBoardData);
+            const pasteEvent: ClipboardEvent = new ClipboardEvent('paste', { clipboardData: dataTransfer } as ClipboardEventInit);
+            editor.onPaste(pasteEvent);
+            setTimeout(() => {
+                var pastedElm = (editor.inputElement.querySelector('OL') as any).style.flexDirection == 'column';
+                expect(pastedElm).toBe(true);
+                done();
+            }, 100);
+        });
+    });
     describe('931044 - After Pasting an Image, the afterPasteCleanup Event Does Not Get Triggered.', () => {
         let editor: RichTextEditor;
         beforeEach((done: DoneFn) => {
@@ -4854,5 +4915,196 @@ StarSymbol"><span style="mso-list:Ignore"><span style="font:7.0pt &quot;Times Ne
             }, 100);
         });
     });
+
+    describe('939654 - Table copied from Google Docs is not retained in the editor.', () => {
+        let editor: RichTextEditor;
+        beforeAll(() => {
+            editor = renderRTE({});
+        });
+        afterAll(() => {
+            destroy(editor);
+        });
+        it ('Should paste the table with empty td elements.', (done: DoneFn) => {
+            editor.focusIn();
+            const clipBoardData: string = '<!--StartFragment--><meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-f69517d3-7fff-7d6f-90d2-303f1b1678cf"><p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;"><span style="font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;">Text content</span></p><br><br><div dir="ltr" style="margin-left:0pt;" align="left"><table style="border:none;border-collapse:collapse;table-layout:fixed;width:468pt"><colgroup><col><col></colgroup><tbody><tr style="height:0pt"><td style="border-left:solid #000000 1pt;border-right:solid #000000 1pt;border-bottom:solid #000000 1pt;border-top:solid #000000 1pt;vertical-align:top;padding:5pt 5pt 5pt 5pt;overflow:hidden;overflow-wrap:break-word;"><br></td><td style="border-left:solid #000000 1pt;border-right:solid #000000 1pt;border-bottom:solid #000000 1pt;border-top:solid #000000 1pt;vertical-align:top;padding:5pt 5pt 5pt 5pt;overflow:hidden;overflow-wrap:break-word;"><br></td></tr><tr style="height:0pt"><td style="border-left:solid #000000 1pt;border-right:solid #000000 1pt;border-bottom:solid #000000 1pt;border-top:solid #000000 1pt;vertical-align:top;padding:5pt 5pt 5pt 5pt;overflow:hidden;overflow-wrap:break-word;"><br></td><td style="border-left:solid #000000 1pt;border-right:solid #000000 1pt;border-bottom:solid #000000 1pt;border-top:solid #000000 1pt;vertical-align:top;padding:5pt 5pt 5pt 5pt;overflow:hidden;overflow-wrap:break-word;"><br></td></tr></tbody></table></div><p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;"><span style="font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;">Text content</span></p></b><br class="Apple-interchange-newline"><!--EndFragment-->';
+            const dataTransfer: DataTransfer = new DataTransfer();
+            dataTransfer.setData('text/html', clipBoardData);
+            const pasteEvent: ClipboardEvent = new ClipboardEvent('paste', { clipboardData: dataTransfer } as ClipboardEventInit);
+            editor.onPaste(pasteEvent);
+            setTimeout(() => {
+                expect(editor.inputElement.querySelectorAll('table').length).toBe(1);
+                expect(editor.inputElement.querySelectorAll('colgroup').length).toBe(0);
+                expect(editor.inputElement.querySelectorAll('col').length).toBe(0);
+                done();
+            }, 100);
+        });
+    });
+
+    describe("925901 - Table gets deleted when hit the enter key", () => {
+        let rteObj: RichTextEditor;
+        let keyBoardEvent: any = {
+          preventDefault: () => { },
+          type: "keydown",
+          stopPropagation: () => { },
+          ctrlKey: false,
+          shiftKey: false,
+          action: null,
+          which: 64,
+          key: ""
+        };
+      
+        beforeAll((done: Function) => {
+          rteObj = renderRTE({
+            value: `<p><b>Description:</b></p><p class="custom">The Rich Text Editor (RTE) control is an easy to render in client side.</p>`,
+            pasteCleanupSettings: {
+              prompt: true
+            }
+          });
+          done();
+        });
+        it("Paste content to RTE table and then pressing the enter key table gets deleted", (done) => {
+          let localElem: string = `\x3C!--StartFragment-->\n\n<div style="direction:ltr;" class="pasteContent_RTE">\n\n<table border="1" cellpadding="0" cellspacing="0" valign="top" title="" summary="" style="direction:ltr;border-style:solid;border-width:\n 1pt;">\n <tbody><tr>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.5in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n </tr>\n <tr>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.5in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n </tr>\n</tbody></table>\n\n</div>\n\n\x3C!--EndFragment-->`;
+          keyBoardEvent.clipboardData = {
+            getData: () => {
+              return localElem;
+            },
+            items: []
+          };
+          rteObj.pasteCleanupSettings.prompt = false;
+          rteObj.pasteCleanupSettings.plainText = false;
+          rteObj.pasteCleanupSettings.keepFormat = true;
+          rteObj.dataBind();
+          let selectNode = (rteObj as any).inputElement.querySelector('.custom');
+          setCursorPoint(selectNode, 0);
+          rteObj.onPaste(keyBoardEvent);
+          let keyboardEventArgs = {
+            preventDefault: function () { },
+            altKey: false,
+            ctrlKey: false,
+            shiftKey: false,
+            char: '',
+            key: '',
+            charCode: 13,
+            keyCode: 13,
+            which: 13,
+            code: 'Enter',
+            action: 'enter',
+            type: 'keydown'
+          };
+          (<any>rteObj).keyDown(keyboardEventArgs);
+          setTimeout(() => {
+            let pastedElm: any = (rteObj as any).inputElement.innerHTML;
+            let expected: boolean = false;
+            let expectedElem: string = '<p><b>Description:</b></p><div style="direction:ltr;">\n\n<table border="1" cellpadding="0" cellspacing="0" valign="top" title="" summary="" style="direction:ltr;border-style:solid;border-width:\n 1pt;" class="e-rte-paste-table">\n <tbody><tr>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.5in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n </tr>\n <tr>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.6673in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n  <td style="border-style:solid;border-width:1pt;\n  vertical-align:top;width:.5in;padding:4pt 4pt 4pt 4pt;">\n  <p style="margin:0in;font-family:Calibri;font-size:11.0pt;">&nbsp;</p>\n  </td>\n </tr>\n</tbody></table></div><p class="custom">The Rich Text Editor (RTE) control is an easy to render in client side.</p>';
+            if (pastedElm === expectedElem) {
+              expected = true;
+            }
+            expect(expected).toBe(true);
+            done();
+          }, 100);
+        });
+
+        afterAll((done: DoneFn) => {
+          destroy(rteObj);
+          done();
+        });
+      });
+
+      describe("936807 - Shortcut key of ctrl+shift+v should not open the prompt dialog", () => {
+        let rteObj: RichTextEditor;
+        let keyBoardEvent: any = {
+          preventDefault: () => { },
+          type: "keydown",
+          stopPropagation: () => { },
+          ctrlKey: true,
+          shiftKey: true,
+          action: null,
+          which: 86,
+          key: "V"
+        };
+
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                value: `<p><b>Description:</b></p><p class="custom">The Rich Text Editor (RTE) control is an easy to render in client side.</p>`,
+                pasteCleanupSettings: {
+                    prompt: true
+                }
+            });
+            done();
+        });
+        it("Prompt should not open when ctrl + shift + v is pressed", (done) => {
+            keyBoardEvent.clipboardData = {
+                getData: (e: any) => {
+                    if (e === "text/plain") {
+                        return 'Description:\n\nThe Rich Text Editor (RTE) ';
+                    } else {
+                        return '';
+                    }
+                },
+                items: []
+            };
+            rteObj.pasteCleanupSettings.prompt = true;
+            rteObj.pasteCleanupSettings.plainText = false;
+            rteObj.pasteCleanupSettings.keepFormat = true;
+            rteObj.dataBind();
+            let selectNode = (rteObj as any).inputElement.querySelector('.custom');
+            setCursorPoint(selectNode, 0);
+            let keyboardEventArgs = {
+                preventDefault: function () { },
+                altKey: false,
+                ctrlKey: true,
+                shiftKey: true,
+                char: '',
+                key: 'v',
+                charCode: 0,
+                keyCode: 86,
+                which: 86,
+                code: 'KeyV',
+                action: '',
+                type: 'keydown'
+            };
+            (<any>rteObj).keyDown(keyboardEventArgs);
+            rteObj.onPaste(keyBoardEvent);
+            setTimeout(() => {
+                let pastedElm: any = (rteObj as any).inputElement.innerHTML;
+                let expected: boolean = false;
+                let expectedElem: string = '<p><b>Description:</b></p><p class="custom">Description:<br><br>The Rich Text Editor (RTE)&nbsp;The Rich Text Editor (RTE) control is an easy to render in client side.</p>';
+                if (pastedElm === expectedElem) {
+                    expected = true;
+                }
+                expect(expected).toBe(true);
+                expect((rteObj as any).isPlainPaste).toBe(false);
+                done();
+            }, 100);
+        });
+
+        afterAll((done: DoneFn) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
+    describe('939662: Pasted equation (image) is not appearing in the editor', () => {
+        let editor: RichTextEditor;
+        beforeAll(() => {
+          editor = renderRTE({});
+        })
+        afterAll(() => {
+          destroy(editor);
+        });
+        it('Should paste an image into the editor', (done: DoneFn) => {
+          editor.focusIn();
+          const clipBoardData: string = `<html>\r\n<body>\r\n\x3C!--StartFragment--><img src="https://wikimedia.org/api/rest_v1/media/math/render/svg/48f35a43975baf07af45c8768074725fdcddb7aa" class="mwe-math-fallback-image-inline mw-invert skin-invert" aria-hidden="true" alt="{\\displaystyle Ax^{2}+Bx+C-y=0}" style="border: 0px; vertical-align: -0.671ex; display: inline-block; --color-base: #202122; --color-base-fixed: #202122; --color-base--hover: #404244; --color-emphasized: #101418; --color-subtle: #54595d; --color-placeholder: #72777d; --color-disabled: #a2a9b1; --color-disabled-emphasized: #a2a9b1; --color-inverted: #fff; --color-inverted-fixed: #fff; --color-progressive: #36c; --color-progressive--hover: #3056a9; --color-progressive--active: #233566; --color-progressive--focus: #36c; --color-destructive: #bf3c2c; --color-destructive--hover: #9f3526; --color-destructive--active: #612419; --color-destructive--focus: #36c; --color-visited: #6a60b0; --color-visited--hover: #534fa3; --color-visited--active: #353262; --color-destructive--visited: #9f5555; --color-destructive--visited--hover: #854848; --color-destructive--visited--active: #512e2e; --color-error: #bf3c2c; --color-error--hover: #9f3526; --color-error--active: #612419; --color-warning: #886425; --color-success: #177860; --color-notice: #404244; --color-icon-error: #f54739; --color-icon-warning: #ab7f2a; --color-icon-success: #099979; --color-icon-notice: #72777d; --color-content-added: #006400; --color-content-removed: #8b0000; --filter-invert-icon: 0; --filter-invert-primary-button-icon: 1; --box-shadow-color-base: #000; --box-shadow-color-progressive--active: #233566; --box-shadow-color-progressive--focus: #36c; --box-shadow-color-progressive-selected: #36c; --box-shadow-color-progressive-selected--hover: #3056a9; --box-shadow-color-progressive-selected--active: #233566; --box-shadow-color-destructive--focus: #36c; --box-shadow-color-inverted: #fff; --box-shadow-color-transparent: transparent; --mix-blend-mode-base: normal; --mix-blend-mode-blend: multiply; --background-color-base: #fff; --background-color-base-fixed: #fff; --background-color-neutral: #eaecf0; --background-color-neutral-subtle: #f8f9fa; --background-color-interactive: #eaecf0; --background-color-interactive--hover: #dadde3; --background-color-interactive--active: #c8ccd1; --background-color-interactive-subtle: #f8f9fa; --background-color-interactive-subtle--hover: #eaecf0; --background-color-interactive-subtle--active: #dadde3; --background-color-disabled: #dadde3; --background-color-disabled-subtle: #eaecf0; --background-color-inverted: #101418; --background-color-progressive: #36c; --background-color-progressive--hover: #3056a9; --background-color-progressive--active: #233566; --background-color-progressive--focus: #36c; --background-color-progressive-subtle: #f1f4fd; --background-color-progressive-subtle--hover: #dce3f9; --background-color-progressive-subtle--active: #cbd6f6; --background-color-destructive: #bf3c2c; --background-color-destructive--hover: #9f3526; --background-color-destructive--active: #612419; --background-color-destructive--focus: #36c; --background-color-destructive-subtle: #ffe9e5; --background-color-destructive-subtle--hover: #ffdad3; --background-color-destructive-subtle--active: #ffc8bd; --background-color-error: #f54739; --background-color-error--hover: #d74032; --background-color-error--active: #bf3c2c; --background-color-error-subtle: #ffe9e5; --background-color-error-subtle--hover: #ffdad3; --background-color-error-subtle--active: #ffc8bd; --background-color-warning-subtle: #fdf2d5; --background-color-success-subtle: #dff2eb; --background-color-notice-subtle: #eaecf0; --background-color-content-added: #a3d3ff; --background-color-content-removed: #ffe49c; --background-color-transparent: transparent; --background-color-backdrop-light: rgba(255,255,255,0.65); --background-color-backdrop-dark: rgba(0,0,0,0.65); --background-color-button-quiet--hover: rgba(0,24,73,0.027); --background-color-button-quiet--active: rgba(0,24,73,0.082); --background-color-input-binary--checked: #36c; --background-color-tab-list-item-framed--hover: rgba(255,255,255,0.3); --background-color-tab-list-item-framed--active: rgba(255,255,255,0.65); --opacity-icon-base: 0.87; --opacity-icon-base--hover: 0.74; --opacity-icon-base--selected: 1; --opacity-icon-base--disabled: 0.51; --opacity-icon-placeholder: 0.51; --opacity-icon-subtle: 0.67; --border-color-base: #a2a9b1; --border-color-subtle: #c8ccd1; --border-color-muted: #dadde3; --border-color-interactive: #72777d; --border-color-interactive--hover: #27292d; --border-color-interactive--active: #202122; --border-color-disabled: #c8ccd1; --border-color-inverted: #fff; --border-color-progressive: #6485d1; --border-color-progressive--hover: #3056a9; --border-color-progressive--active: #233566; --border-color-progressive--focus: #36c; --border-color-destructive: #f54739; --border-color-destructive--hover: #9f3526; --border-color-destructive--active: #612419; --border-color-destructive--focus: #36c; --border-color-error: #f54739; --border-color-error--hover: #9f3526; --border-color-error--active: #612419; --border-color-warning: #ab7f2a; --border-color-success: #099979; --border-color-notice: #72777d; --border-color-content-added: #a3d3ff; --border-color-content-removed: #ffe49c; --border-color-transparent: transparent; --border-color-divider: #a2a9b1; --outline-color-progressive--focus: #36c; --color-link-red: var(--color-destructive); --color-link-red--hover: var(--color-destructive--hover); --color-link-red--active: var(--color-destructive--active); --color-link-red--focus: var(--color-destructive--focus); --color-link-red--visited: var(--color-destructive--visited); --color-link-red--visited--hover: var(--color-destructive--visited--hover); --color-link-red--visited--active: var(--color-destructive--visited--active); --border-color-input--hover: var(--border-color-interactive); --border-color-input-binary: var(--border-color-interactive); --border-color-input-binary--hover: var(--border-color-progressive--hover); --border-color-input-binary--active: var(--border-color-progressive--active); --border-color-input-binary--focus: var(--border-color-progressive--focus); --border-color-input-binary--checked: var(--border-color-progressive); --color-base--subtle: #54595d; color: rgb(32, 33, 34); font-family: sans-serif; font-size: 16px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; width: 22.925ex; height: 3.009ex;">\x3C!--EndFragment-->\r\n</body>\r\n</html>`;
+          const dataTransfer: DataTransfer = new DataTransfer();
+          dataTransfer.setData('text/html', clipBoardData);
+          const pasteEvent: ClipboardEvent = new ClipboardEvent('paste', { clipboardData: dataTransfer } as ClipboardEventInit);
+          editor.onPaste(pasteEvent);
+          setTimeout(() => {
+            const imgElement = editor.inputElement.querySelector('img');
+            expect(imgElement).not.toBeNull();
+            done();
+          }, 100);
+        });
+      });
 
 });// Add the spec above this.

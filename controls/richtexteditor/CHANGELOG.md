@@ -2,6 +2,64 @@
 
 ## [Unreleased]
 
+## 28.2.6 (2025-02-18)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#I685085` - Now, the Rich Text Editor works properly when pressing the backspace key within list elements, and the list structure no longer collapses.
+
+- `#I682872` - Now, pressing `Shift + Enter` after selecting a video will no longer create a duplicate video in the Rich Text Editor.
+
+- `#F195768` - Now, the font size will be preserved for numbered and bulleted lists in the Rich Text Editor.
+
+- `#F195933` - Now, the Add Table popup works properly when using two Rich Text Editors.
+
+- `#I687267` - Now, the screen reader works properly when navigating the color picker in the toolbar using the keyboard.
+
+## 28.2.5 (2025-02-11)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#F195633` - Now, the change event will trigger when `Cmd+Backspace` is performed on a Mac.
+
+- `#I687260` - Now, the issue with the toolbar action not being applied to the selected text in the Rich Text Editor when using keyboard actions in the Safari browser has now been resolved.
+
+## 28.2.4 (2025-02-04)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#I677654` - Now, nested list content is cleaned up properly when the `backspace` key is pressed in the Rich Text Editor.
+
+- `#I674632` - Now, the `Shift` plus `Enter` keys work properly in the Rich Text Editor.
+
+- `#I680096` - Now, the shortcut key `Ctrl + Shift + H` works properly when frequently used to switch between Code View and Preview in the Rich Text Editor.
+  
+- `#I677654` - Now, nested list content is cleaned up properly when the `backspace` key is pressed in the Rich Text Editor.
+
+- `#I684249`- Now, the issue has been resolved where pressing the backspace key at the beginning of a block element within a nested structure no longer results in unexpected wrapping with inline styles.
+
+- `#I588147` - Now, the text `&times` remains unchanged and is not converted to `x` in the Rich Text Editor, regardless of the insertion method used.
+
+- `#F195633` - Now, the change event will trigger when `Cmd+Backspace` is performed on a Mac.
+
+- `#I667013` - Now, the `Tab` key is now functioning properly within the list in the Rich Text Editor.
+
+## 28.2.3 (2025-01-29)
+
+### RichTextEditor
+
+#### Bug Fixes
+
+- `#I675751` - Now, the uploading popup closes properly after pasting multiple images in the Rich Text Editor.
+
+- `#I665117` - Now, a link is created properly for the entire selected text in the Rich Text Editor.
+
 ## 28.1.41 (2025-01-21)
 
 ### RichTextEditor

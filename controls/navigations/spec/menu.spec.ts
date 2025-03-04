@@ -869,6 +869,42 @@ describe('Menu', () => {
             // rightEventArgs.target = menu.element.children[2];
             // menu.rightEnterKeyHandler(rightEventArgs);
         });
+        it('should handle ESC key to close the menu', () => {
+            document.body.appendChild(ul);
+            menu = new Menu({ items: items, showItemOnClick: true }, '#menu');
+            menu.navIdx = [1, 1];
+            const keyEventArgs: any = {
+                preventDefault: () => { /**/ },
+                stopImmediatePropagation: () => { /**/ },
+                action: 'escape',
+                key: 'Escape',
+                keyCode: 27,
+                target: document.activeElement,
+                type: 'keydown'
+            };
+            menu.domKeyHandler(keyEventArgs);
+            expect(menu.isMenuVisible()).toBe(true);
+        });
+        it('getChangedItemIndex with nested items should traverse recursively', () => {
+            menu = new Menu({ items: items }, '#menu');
+            const newProps = {
+                items: {
+                    1: {
+                        items: {
+                            0: {
+                                items: {
+                                    1: {
+                                        text: 'Changed Text'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            const index = menu.getChangedItemIndex(newProps, [], 1);
+            expect(index).toEqual([1, 0, 1]);
+        });
     });
 
     describe('CR issues', () => {

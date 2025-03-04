@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### Pivot Table
+
+#### Bug fixes
+
+- `#I689404` - Now we can apply number grouping to decimal values in the pivot table.
+- `#682045`, `#682045` - Date field members will now be correctly localized when using the Pivot Table with the server-side engine across different cultures.
+
+## 28.2.6 (2025-02-18)
+
+### Pivot Table
+
+#### Bug Fixes
+
+- `#I683197` - The Drillthrough popup will now display the date field with the correct formatting in the pivot table.
+- `#I675848` - The pivot table scrollbar will now be displayed correctly during the initial rendering, even when its width is not explicitly specified.
+
+## 28.2.4 (2025-02-04)
+
+### Pivot Table
+
+#### Bug Fixes
+
+- `#I681520` - The percentage symbol is now included in the axis labels for the StackingBar100, StackingColumn100, StackingArea100, and StackingLine100 chart types.
+
 ## 28.1.41 (2025-01-21)
 
 ### Pivot Table

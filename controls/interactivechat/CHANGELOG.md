@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### AI AssistView
+
+#### Bug Fixes
+
+- `#I692622` - Now the issue with scrollbar position when dynamically updating messages using `messageTemplate` property has been resolved.
+
+## 28.2.6 (2025-02-18)
+
+### AI AssistView
+
+#### Bug Fixes
+
+- `#I689424` - Now the issue with TextArea doesn't adjust the height dynamically when the text exceeds the current height has been resolved.
+
+## 28.2.5 (2025-02-11)
+
+### AI AssistView
+
+#### Bug Fixes
+
+- `#I686430` - Now the issue with scrollbar position when loaded initially using the `messageTemplate` and `loadOnDemand` property enabled has been resolved.
+
 ## 28.1.41 (2025-01-21)
 
 ### AI AssistView

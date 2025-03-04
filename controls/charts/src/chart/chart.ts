@@ -2533,8 +2533,6 @@ export class Chart extends Component<HTMLElement> implements INotifyPropertyChan
         for (let i: number = 0, len: number = axes.length; i < len; i++) {
             axis = <Axis>axes[i as number]; axis.series = [];
             axis.labels = []; axis.indexLabels = {};
-            axis.orientation = (i === 0) ? (this.requireInvertedAxis ? 'Vertical' : 'Horizontal') :
-                (i === 1) ? (this.requireInvertedAxis ? 'Horizontal' : 'Vertical') : axis.orientation;
             for (const series of this.visibleSeries) {
                 this.initAxis(series, axis, true);
                 if (series.category === 'Pareto' && series.type === 'Line' && series.yAxis) {
@@ -3085,7 +3083,6 @@ export class Chart extends Component<HTMLElement> implements INotifyPropertyChan
         const stopEvent: string = Browser.touchEndEvent;
         const cancelEvent: string = Browser.isPointer ? 'pointerleave' : 'mouseleave';
         /** UnBind the Event handler */
-        EventHandler.remove(this.element, 'mousewheel', this.chartOnMouseWheel);
         EventHandler.remove(this.element, startEvent, this.chartOnMouseDown);
         EventHandler.remove(this.element, moveEvent, this.mouseMove);
         EventHandler.remove(this.element, stopEvent, this.mouseEnd);
@@ -3125,7 +3122,6 @@ export class Chart extends Component<HTMLElement> implements INotifyPropertyChan
         const cancelEvent: string = Browser.isPointer ? 'pointerleave' : 'mouseleave';
 
         /** Bind the Event handler */
-        EventHandler.add(this.element, 'mousewheel', this.chartOnMouseWheel, this);
         EventHandler.add(this.element, Browser.touchStartEvent, this.chartOnMouseDown, this);
         EventHandler.add(this.element, Browser.touchMoveEvent, this.mouseMove, this);
         EventHandler.add(this.element, Browser.touchEndEvent, this.mouseEnd, this);
@@ -3901,24 +3897,7 @@ export class Chart extends Component<HTMLElement> implements INotifyPropertyChan
                 .categories[parseInt(texts[2], 10)].text);
         }
     }
-    /**
-     * Handles the mouse wheel on the chart.
-     *
-     * @param {WheelEvent} e - The wheel event.
-     * @returns {boolean} - False.
-     * @private
-     */
-    public chartOnMouseWheel(e: WheelEvent): boolean {
-        const offset: ClientRect = this.element.getBoundingClientRect();
-        const svgRect: ClientRect = getElement(this.svgId).getBoundingClientRect();
-        const mouseX: number = (e.clientX - offset.left) - Math.max(svgRect.left - offset.left, 0);
-        const mouseY: number = (e.clientY - offset.top) - Math.max(svgRect.top - offset.top, 0);
-        if (this.zoomSettings.enableMouseWheelZooming &&
-            withInBounds(mouseX, mouseY, this.chartAxisLayoutPanel.seriesClipRect)) {
-            this.notify('mousewheel', e);
-        }
-        return false;
-    }
+
     /**
      * Handles the mouse down on the chart.
      *
@@ -4738,7 +4717,8 @@ export class Chart extends Component<HTMLElement> implements INotifyPropertyChan
                         if (!isNullOrUndefined(series) && (series.dataSource || series.query || series.errorBar || series.xName ||
                             series.yName || series.size || series.high || series.low || series.open || series.close || series.trendlines ||
                             series.fill || series.name || series.marker || series.width || series.binInterval || series.type ||
-                            (series.visible !== oldProp.series[i as number].visible) || blazorProp)) {
+                            (series.visible !== oldProp.series[i as number].visible) ||
+                            series.legendShape || series.emptyPointSettings || blazorProp)) {
                             extend(this.getVisibleSeries(this.visibleSeries, i), series, null, true);
                             seriesRefresh = true;
                         }

@@ -316,6 +316,9 @@ export class FormDesigner {
                 'class': 'foreign-object'
             };
             const htmlElement: HTMLElement = this.createHtmlElement('div', HtmlElementAttribute);
+            if (drawingObject.fontFamily === 'TimesRoman') {
+                drawingObject.fontFamily = 'Times New Roman';
+            }
             if (formFieldAnnotationType === 'SignatureField' || formFieldAnnotationType === 'InitialField') {
                 element.template = htmlElement.appendChild(this.createSignatureDialog(commandHandler, drawingObject));
             } else if (formFieldAnnotationType === 'DropdownList') {
@@ -406,7 +409,7 @@ export class FormDesigner {
                     }
                 }
             }
-            const field: IFormField = {
+            const field: any = {
                 name: drawingObject.name, id: drawingObject.id, value: drawingObject.value, fontFamily: drawingObject.fontFamily,
                 fontSize: drawingObject.fontSize, fontStyle: drawingObject.fontStyle,
                 color: drawingObject.color, backgroundColor: drawingObject.backgroundColor, alignment: drawingObject.alignment,
@@ -415,12 +418,14 @@ export class FormDesigner {
                 rotation: drawingObject.rotateAngle, tooltip: drawingObject.tooltip,
                 borderColor: drawingObject.borderColor, thickness: drawingObject.thickness, options: drawingObject.options,
                 pageNumber: drawingObject.pageNumber, isChecked: drawingObject.isChecked,
-                isSelected: drawingObject.isSelected, customData: drawingObject.customData
+                isSelected: drawingObject.isSelected, customData: drawingObject.customData, bounds: drawingObject.bounds
             };
             if (!this.pdfViewer.isFormFieldsLoaded || isAddedProgrammatically) {
                 this.pdfViewerBase.updateDocumentEditedProperty(true);
             }
-            this.pdfViewer.fireFormFieldAddEvent('formFieldAdd', field, this.pdfViewerBase.activeElements.activePageID);
+            const pageIndex: number = this.pdfViewerBase.activeElements.activePageID ?
+                this.pdfViewerBase.activeElements.activePageID : field.pageNumber - 1;
+            this.pdfViewer.fireFormFieldAddEvent('formFieldAdd', field as IFormField , pageIndex);
         } else {
             const point: PointModel = cornersPointsBeforeRotation(element).topLeft;
             this.updateFormDesignerFieldInSessionStorage(point, element, formFieldAnnotationType, drawingObject);
@@ -2008,6 +2013,7 @@ export class FormDesigner {
     private listBoxChange(event: Event): void {
         const data: string = this.pdfViewerBase.getItemFromSessionStorage('_formDesigner');
         const formFieldsData: any = JSON.parse(data);
+        let targetField: any = null;
         for (let i: number = 0; i < formFieldsData.length; i++) {
             if (formFieldsData[parseInt(i.toString(), 10)].Key.split('_')[0] === (event.currentTarget as Element).id.split('_')[0] ||
                 (this.pdfViewer.nameTable as any)[(event.currentTarget as Element).id.split('_')[0]].name === formFieldsData[parseInt(i.toString(), 10)].FormField.name) {
@@ -2041,6 +2047,7 @@ export class FormDesigner {
                         option[parseInt(selectIndex.toString(), 10)].itemValue;
                     this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.value = newValue;
                     this.updateFormFieldCollections(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField);
+                    targetField = this.pdfViewer.formFieldCollections[this.pdfViewer.formFieldCollections.findIndex(function (el: any): any { return (el.id + '_content' === formFieldsData[parseInt(i.toString(), 10)].FormField.id); })];
                     this.pdfViewer.fireFormFieldPropertiesChangeEvent('formFieldPropertiesChange', formFieldsData[parseInt(i.toString(), 10)].FormField, this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.pageNumber, true, false, false,
                                                                       false, false, false, false, false, false, false, false,
                                                                       false, false, false, false, oldValue, newValue);
@@ -2051,12 +2058,13 @@ export class FormDesigner {
             }
         }
         this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formDesigner');
-        this.updateFormFieldSessions();
+        this.updateFormFieldSessions(targetField);
     }
 
     private dropdownChange(event: Event): void {
         const data: string = this.pdfViewerBase.getItemFromSessionStorage('_formDesigner');
         const formFieldsData: any = JSON.parse(data);
+        let targetField: any = null;
         for (let i: number = 0; i < formFieldsData.length; i++) {
             if (formFieldsData[parseInt(i.toString(), 10)].Key.split('_')[0] === (event.target as Element).id.split('_')[0] ||
                 (this.pdfViewer.nameTable as any)[(event.target as Element).id.split('_')[0]].name === formFieldsData[parseInt(i.toString(), 10)].FormField.name) {
@@ -2081,6 +2089,7 @@ export class FormDesigner {
                     (inputElement as IElement).selectedIndex = selectIndex;
                 }
                 this.updateFormFieldCollections(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField);
+                targetField = this.pdfViewer.formFieldCollections[this.pdfViewer.formFieldCollections.findIndex(function (el: any): any { return (el.id + '_content' === formFieldsData[parseInt(i.toString(), 10)].FormField.id); })];
                 this.pdfViewer.fireFormFieldPropertiesChangeEvent('formFieldPropertiesChange', formFieldsData[parseInt(i.toString(), 10)].FormField, this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.pageNumber, true, false, false,
                                                                   false, false, false, false, false, false, false, false,
                                                                   false, false, false, false, oldValue, newValue);
@@ -2090,7 +2099,7 @@ export class FormDesigner {
             }
         }
         this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formDesigner');
-        this.updateFormFieldSessions();
+        this.updateFormFieldSessions(targetField);
     }
 
     public setCheckBoxState(event: Event): void {
@@ -2098,6 +2107,7 @@ export class FormDesigner {
             const minCheckboxWidth: number = 20;
             let isChecked: boolean = false;
             let checkTarget: Element;
+            let targetField: any = null;
             if (Browser.isDevice) {
                 checkTarget = document.getElementById((event.target as Element).id.split('_')[0] + '_input');
             } else {
@@ -2152,6 +2162,7 @@ export class FormDesigner {
                             }
                         }
                         this.updateFormFieldCollections(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField);
+                        targetField = this.pdfViewer.formFieldCollections[this.pdfViewer.formFieldCollections.findIndex(function (el: any): any { return (el.id + '_content' === formFieldsData[parseInt(i.toString(), 10)].FormField.id); })];
                         this.pdfViewer.fireFormFieldPropertiesChangeEvent('formFieldPropertiesChange', formFieldsData[parseInt(i.toString(), 10)].FormField, this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.pageNumber, true, false, false,
                                                                           false, false, false, false, false, false, false, false,
                                                                           false, false, false, false, oldValue, isChecked);
@@ -2161,7 +2172,7 @@ export class FormDesigner {
                     }
                 }
                 this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formDesigner');
-                this.updateFormFieldSessions();
+                this.updateFormFieldSessions(targetField);
             }
         }
     }
@@ -2179,6 +2190,7 @@ export class FormDesigner {
     private setRadioButtonState(event: Event): void {
         const data: string = this.pdfViewerBase.getItemFromSessionStorage('_formDesigner');
         const formFieldsData: any = JSON.parse(data);
+        let targetField: any = null;
         for (let i: number = 0; i < formFieldsData.length; i++) {
             if (formFieldsData[parseInt(i.toString(), 10)].FormField.radiobuttonItem != null) {
                 let oldValue: any;
@@ -2223,6 +2235,7 @@ export class FormDesigner {
                     }
                     this.updateFormFieldCollections(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].
                         FormField.radiobuttonItem[parseInt(j.toString(), 10)]);
+                    targetField = this.pdfViewer.formFieldCollections[this.pdfViewer.formFieldCollections.findIndex(function (el: any): any { return (el.id + '_content' === formFieldsData[parseInt(i.toString(), 10)].FormField.id); })];
                 }
                 if ((undoElement != null || redoElement != null) && this.pdfViewer.annotation) {
                     this.pdfViewer.annotation.addAction(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.pageNumber, null, this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField, 'FormField Value Change', '', undoElement, redoElement);
@@ -2230,12 +2243,13 @@ export class FormDesigner {
             }
         }
         this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formDesigner');
-        this.updateFormFieldSessions();
+        this.updateFormFieldSessions(targetField);
     }
 
     private getTextboxValue(event: Event): void {
         const data: string = this.pdfViewerBase.getItemFromSessionStorage('_formDesigner');
         const formFieldsData: any = JSON.parse(data);
+        let targetField: any = null;
         for (let i: number = 0; i < formFieldsData.length; i++) {
             if (formFieldsData[parseInt(i.toString(), 10)].Key.split('_')[0] === (event.target as Element).id.split('_')[0] ||
                 (this.pdfViewer.nameTable as any)[(event.target as Element).id.split('_')[0]].name === formFieldsData[parseInt(i.toString(), 10)].FormField.name) {
@@ -2256,6 +2270,7 @@ export class FormDesigner {
                     }
                 }
                 this.updateFormFieldCollections(this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField);
+                targetField = this.pdfViewer.formFieldCollections[this.pdfViewer.formFieldCollections.findIndex(function (el: any): any { return (el.id + '_content' === formFieldsData[parseInt(i.toString(), 10)].FormField.id); })];
                 this.pdfViewer.fireFormFieldPropertiesChangeEvent('formFieldPropertiesChange', this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField, this.pdfViewerBase.formFieldCollection[parseInt(i.toString(), 10)].FormField.pageNumber, true, false, false,
                                                                   false, false, false, false, false, false, false, false,
                                                                   false, false, false, false, oldValue, (event.target as IElement).value);
@@ -2265,18 +2280,37 @@ export class FormDesigner {
             }
         }
         this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formDesigner');
-        this.updateFormFieldSessions();
+        this.updateFormFieldSessions(targetField);
     }
 
     private inputElementClick(event: any): void {
         event.target.focus();
     }
 
-    private updateFormFieldSessions(): void {
+    private updateFormFieldSessions(field: any): void {
         const fieldData: string = this.pdfViewerBase.getItemFromSessionStorage('_formfields');
         const formFieldsDatas: any = JSON.parse(fieldData);
-        if (formFieldsDatas && this.pdfViewer.formFieldCollection.length === formFieldsDatas.length) {
-            this.pdfViewerBase.setItemInSessionStorage(this.pdfViewerBase.formFieldCollection, '_formfields');
+        if (!isNullOrUndefined(formFieldsDatas) && !isNullOrUndefined(field)) {
+            for (let x: number = 0; x < formFieldsDatas.length; x++) {
+                if (formFieldsDatas[parseInt(x.toString(), 10)].ActualFieldName === field.name) {
+                    if (field.type === 'Textbox' || field.type === 'PasswordField') {
+                        formFieldsDatas[parseInt(x.toString(), 10)].Value = field.value;
+                    }
+                    else if (field.type === 'Checkbox') {
+                        formFieldsDatas[parseInt(x.toString(), 10)].Selected = field.isChecked;
+                    }
+                    else if (field.type === 'RadioButton') {
+                        formFieldsDatas[parseInt(x.toString(), 10)].Selected = field.isSelected;
+                    }
+                    else if (field.type === 'DropdownList') {
+                        formFieldsDatas[parseInt(x.toString(), 10)].Value = field.value;
+                    }
+                    else if (field.type === 'ListBox') {
+                        formFieldsDatas[parseInt(x.toString(), 10)].Value = field.value;
+                    }
+                }
+            }
+            this.pdfViewerBase.setItemInSessionStorage(formFieldsDatas, '_formfields');
         }
     }
 
@@ -7415,6 +7449,9 @@ export class FormDesigner {
         const color: any = {r: 218, g: 234, b: 247, a: 100};
         if (selectedItem.formFieldAnnotationType === 'DropdownList' || selectedItem.formFieldAnnotationType === 'ListBox') {
             (inputElement as any).parentElement.style.backgroundColor = (inputElement as any).style.backgroundColor;
+        }
+        if (!isReadOnly && (inputElement as any).disabled) {
+            (inputElement as any).disabled = false;
         }
         if (isReadOnly) {
             if (selectedItem.formFieldAnnotationType === 'RadioButton') {

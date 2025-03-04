@@ -715,18 +715,22 @@ export class SpellChecker {
      * @private
      */
 
-    public handleWordByWordSpellCheck(jsonObject: any, elementBox: TextElementBox, left: number, top: number, underlineY: number, baselineAlignment: BaselineAlignment, isSamePage: boolean): void {
+    public handleWordByWordSpellCheck(jsonObject: any, elementBox: TextElementBox, left: number, top: number, underlineY: number, baselineAlignment: BaselineAlignment, isSamePage: boolean, currentText?: string): void {
+        if (isNullOrUndefined(currentText))
+        {
+            currentText = elementBox.text;
+        }
         if (jsonObject.HasSpellingError && isSamePage) {
-            this.addErrorCollection(elementBox.text, elementBox, jsonObject.Suggestions);
-
-            const backgroundColor: string = (elementBox.line.paragraph.containerWidget instanceof TableCellWidget) ? (elementBox.line.paragraph.containerWidget as TableCellWidget).cellFormat.shading.backgroundColor : this.documentHelper.backgroundColor;
-            this.documentHelper.render.renderWavyLine(elementBox, left, top, underlineY, '#FF0000', 'Single', baselineAlignment, backgroundColor);
-            elementBox.isSpellChecked = true;
-            elementBox.isWrongWord = true;
+            this.addErrorCollection(currentText, elementBox, jsonObject.Suggestions);
+            if (currentText === elementBox.text.trim())
+            {
+                const backgroundColor: string = (elementBox.line.paragraph.containerWidget instanceof TableCellWidget) ? (elementBox.line.paragraph.containerWidget as TableCellWidget).cellFormat.shading.backgroundColor : this.documentHelper.backgroundColor;
+                this.documentHelper.render.renderWavyLine(elementBox, left, top, underlineY, '#FF0000', 'Single', baselineAlignment, backgroundColor);
+                elementBox.isSpellChecked = true;
+            }
         } else {
-            this.addCorrectWordCollection(elementBox.text);
+            this.addCorrectWordCollection(currentText);
             elementBox.isSpellChecked = true;
-            elementBox.isWrongWord = false;
         }
     }
 
@@ -754,6 +758,9 @@ export class SpellChecker {
                 let textElement: TextElementBox = undefined;
                 for (let i: number = index - difference; i >= 0; i--) {
                     textElement = line.children[i] as TextElementBox;
+                    if (!isNullOrUndefined(textElement) && !isNullOrUndefined(textElement.revisions) && textElement.revisions.length > 0 && textElement.revisions[0].revisionType === "Deletion") {
+                        break;
+                    }
                     if (textElement instanceof TextElementBox && !isPrevField) {
                         if (prevText.indexOf(' ') !== 0 && textElement.text.lastIndexOf(' ') !== textElement.text.length - 1) {
                             prevCombined = !isNullOrUndefined(textToCombine) ? true : false;
@@ -787,6 +794,9 @@ export class SpellChecker {
                 let element: TextElementBox = undefined;
                 for (let i: number = index + 1; i < line.children.length; i++) {
                     element = (line.children[i] as TextElementBox);
+                    if (!isNullOrUndefined(element) && !isNullOrUndefined(element.revisions) && element.revisions.length > 0 && element.revisions[0].revisionType === "Deletion") {
+                        break;
+                    }
                     if (element instanceof TextElementBox && !isPrevField) {
                         if (nextText.lastIndexOf(' ') !== nextText.length - 1 && element.text.indexOf(' ') !== 0) {
                             currentText += element.text;
@@ -953,7 +963,6 @@ export class SpellChecker {
                 if (para.childWidgets[i] == elementBox.line) break;
                 lineY += (para.childWidgets[i] as LineWidget).height;
             }
-            elementBox.isWrongWord = true;
             if (elementBox.isRightToLeft) {
                 this.documentHelper.render.renderWavyLine(span, span.end.location.x, lineY, wavyLineY, color, 'Single', elementBox.characterFormat.baselineAlignment, backgroundColor);
             } else {

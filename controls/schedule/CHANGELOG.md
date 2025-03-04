@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### Schedule
+
+#### Bug fixes
+
+- `#I682735`, `#I680637` -  An issue where the current time indicator in the Scheduler is rendered in the incorrect position in timeline views has been resolved.
+
+- `#F64855` - An issue where the selected date not maintained in Scheduler `MonthAgenda` view has been resolved.
+
+## 28.2.5 (2025-02-11)
+
+### Schedule
+
+#### Bug fixes
+
+- `#I682735`, `#I680637` -  An issue where the current time indicator in the Scheduler is rendered in the incorrect position in vertical views has been resolved.
+
+## 28.2.4 (2025-02-04)
+
+### Schedule
+
+#### Bug fixes
+
+- `#I680887` - An issue where the Scheduler year view popup does not close when navigating to other views has been resolved.
+
+- `#F195634` - An issue with scheduler event misalignment in timeline Day View with custom `timeScale` and `interval` settings has been resolved.
+
+- `#F195703` - An issue with the Schedule `actionCompleteArgs` to ensure `deletedRecords` contain the correct edited timezone start and end time for deleted appointments has been resolved.
+
+## 28.2.3 (2025-01-29)
+
+### Schedule
+
+#### Bug fixes
+
+- `#F195714` - The issue where the `showWeekNumber` property was enabled but the calendar did not display the week numbers in the Scheduler has been resolved.
+- `#I679226` - An issue with swipe functionality not working in the custom month view in mobile mode has been resolved.
+
 ## 28.1.39 (2024-01-14)
 
 ### Schedule

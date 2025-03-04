@@ -2539,7 +2539,7 @@ export class TableWidget extends BlockWidget {
         this.tableHolder.validateColumnWidths();
         if (isAutoFit) {
             // Fits the column width automatically based on contents.
-            this.tableHolder.autoFitColumn(containerWidth, tableWidth, isAutoWidth, this.isInsideTable, isAutoFit, hasSpannedCells, this.leftIndent + this.rightIndent, pageContainerWidth);
+            this.tableHolder.autoFitColumn(containerWidth, tableWidth, isAutoWidth, this.isInsideTable, isAutoFit, hasSpannedCells, this.leftIndent + this.rightIndent, pageContainerWidth, this.tableFormat.preferredWidthType);
         } else {
             // Fits the column width based on preferred width. i.e. Fixed layout.
             this.tableHolder.fitColumns(containerWidth, tableWidth, isAutoWidth, isAutoFit, this.leftIndent + this.rightIndent);
@@ -4895,10 +4895,6 @@ export abstract class ElementBox {
     /**
      * @private
      */
-    public isWrongWord: boolean = false;
-    /**
-     * @private
-     */
     public isVisible: boolean = false;
     /**
      * @private
@@ -4907,7 +4903,7 @@ export abstract class ElementBox {
     /**
      * @private
      */
-    public isSpellCheckTriggred: boolean = false;
+    public isSpellCheckTriggered: boolean = false;
     /**
      * @private
      */
@@ -7316,6 +7312,9 @@ export class EditRangeEndElementBox extends ElementBox {
      */
     public clone(): EditRangeEndElementBox {
         let end: EditRangeEndElementBox = new EditRangeEndElementBox();
+        if (this.editRangeStart) {
+            this.editRangeStart.editRangeEnd = end;
+        }
         end.editRangeStart = this.editRangeStart;
         end.editRangeId = this.editRangeId;
         return end;
@@ -7406,6 +7405,9 @@ export class EditRangeStartElementBox extends ElementBox {
         start.columnLast = this.columnLast;
         start.user = this.user;
         start.group = this.group;
+        if (this.editRangeEnd) {
+            this.editRangeEnd.editRangeStart = start;
+        }
         start.editRangeEnd = this.editRangeEnd;
         start.editRangeId = this.editRangeId;
         return start;
@@ -9677,7 +9679,7 @@ export class WTableHolder {
     /**
      * @private
      */
-    public autoFitColumn(containerWidth: number, preferredTableWidth: number, isAuto: boolean, isNestedTable: boolean, isAutoFit: boolean, hasSpannedCells: boolean, indent?: number, pageContainerWidth?: number): void {
+    public autoFitColumn(containerWidth: number, preferredTableWidth: number, isAuto: boolean, isNestedTable: boolean, isAutoFit: boolean, hasSpannedCells: boolean, indent?: number, pageContainerWidth?: number, tablePreferredWidthType?: WidthType): void {
         // Cell's preferred width should be considered until the table width fits to the container width.
         let maxTotal: number = 0;
         let minTotal: number = 0;
@@ -9685,9 +9687,11 @@ export class WTableHolder {
         // But currently there is no way to find any one of cell in particular column has 0 px preferred width set.
         // If all columns are set as 0 pixels, then this will work.
         let remainingWidthTotal: number = 0;
-        let isAllColumnPointWidth: boolean = true;
+        let isAllColumnPointWidth: boolean = this.columns.every(column => column.widthType === 'Point');
         let minWidthExceedCellWidth = 0;
-        let columnIndexCollection: number[] = []
+        let columnIndexCollection: number[] = [];
+        let totalColumnsPreferredWidth: number = this.getTotalWidth(0);
+        let isTableHasPointWidth: boolean = !isAuto && tablePreferredWidthType === "Point" && isAllColumnPointWidth && !hasSpannedCells && HelperMethods.round(preferredTableWidth, 2) < HelperMethods.round(totalColumnsPreferredWidth, 2);
         for (let i: number = 0; i < this.columns.length; i++) {
             let column: WColumn = this.columns[i];
             // If preferred width of column is less than column minimum width and also column is empty, considered column preferred width
@@ -9696,8 +9700,8 @@ export class WTableHolder {
                 column.maximumWordWidth = column.preferredWidth;
                 column.minWidth = column.preferredWidth;
             }
-            if (column.widthType !== 'Point') {
-                isAllColumnPointWidth = false;
+            if (isTableHasPointWidth) {
+                this.columns[i].preferredWidth = (this.columns[i].preferredWidth / totalColumnsPreferredWidth) * preferredTableWidth;
             }
             let difference: number = 0;
             maxTotal += column.preferredWidth > column.maximumWordWidth ? column.preferredWidth : column.maximumWordWidth;
@@ -9768,9 +9772,24 @@ export class WTableHolder {
             if (!isAuto) {
                 //let totalMinimumWordWidth: number = this.getTotalWidth(1);
                 //if (preferredTableWidth > totalMinimumWordWidth && totalMinimumWordWidth < containerWidth) {
-                let considerMinAsTableWidth: boolean = false;
-                if ((preferredTableWidth < minTotal && minTotal + (isNullOrUndefined(indent) ? 0 : indent) < containerWidth)) {
-                    considerMinAsTableWidth = true;
+                let considerMinAsTableWidth: boolean = preferredTableWidth < minTotal && minTotal + (isNullOrUndefined(indent) ? 0 : indent) < containerWidth;
+                if (isTableHasPointWidth && considerMinAsTableWidth) {
+                    if (minTotal > preferredTableWidth && minWidthExceedCellWidth > 0) {
+                        if (preferredTableWidth > totalPreferredWidth) {
+                            minWidthExceedCellWidth -= (preferredTableWidth - totalPreferredWidth);
+                        }
+                        let averageWidth: number = minWidthExceedCellWidth / columnIndexCollection.length;
+                        for (let i: number = 0; i < this.columns.length; i++) {
+                            let column: WColumn = this.columns[i];
+                            if (columnIndexCollection.indexOf(i) === -1) {
+                                column.preferredWidth = column.minimumWordWidth;
+                            } else {
+                                column.preferredWidth = (column.preferredWidth - averageWidth);
+                            }
+                        }
+                        totalPreferredWidth = this.getTotalWidth(0);
+                    }
+                    return;
                 }
                 this.fitColumns(containerWidth, considerMinAsTableWidth ? minTotal : preferredTableWidth, isAuto, isAutoFit);
                 return;

@@ -290,6 +290,10 @@ describe('Image Module', () => {
             //expect(width).toEqual((rteObj.element.querySelector('.e-rte-image') as HTMLElement).offsetWidth);
             (<any>rteObj.imageModule).resizeBtnStat.botRight = true;
             (rteObj.imageModule as any).resizing({ target: resizeBot, pageX: 100 });
+            (<any>rteObj.imageModule).parent.iframeSettings.enable = true;
+            (<any>rteObj.imageModule).resizeBtnStat.botRight = true;
+            (rteObj.imageModule as any).resizing({ target: resizeBot, pageX: 200 });
+            (<any>rteObj.imageModule).parent.iframeSettings.enable = false;
             width -= 200;
             //expect(width).toEqual((rteObj.element.querySelector('.e-rte-image') as HTMLElement).offsetWidth);
         });
@@ -496,11 +500,11 @@ client side. Customer easy to edit the contents and get the HTML content for
             (<any>rteObj.imageModule).resizeBtnStat.botRight = true;
             (rteObj.imageModule as any).resizing({ target: resizeBot, pageX: 300 });
             width += 100;
-            expect(width).toEqual((rteObj.element.querySelector('img') as HTMLElement).offsetWidth + 100);
+            expect(width).toEqual((rteObj.element.querySelector('img') as HTMLElement).offsetWidth);
             (<any>rteObj.imageModule).resizeBtnStat.botRight = true;
             (rteObj.imageModule as any).resizing({ target: resizeBot, pageX: 100 });
-            width -= 200;
-            expect(width).toEqual((rteObj.element.querySelector('img') as HTMLElement).offsetWidth - 100);
+            width -= 199;
+            expect(width).toEqual((rteObj.element.querySelector('img') as HTMLElement).offsetWidth);
             rteObj.value = null;
             rteObj.dataBind();
             rteObj.value = innerHTML1;
@@ -948,7 +952,6 @@ client side. Customer easy to edit the contents and get the HTML content for
         });
         afterAll(() => {
             destroy(rteObj);
-            detach(document.querySelector('.e-imginline'));
         });
         it('image dialog', (done: Function) => {
             expect(rteObj.element.querySelectorAll('.e-rte-content').length).toBe(1);
@@ -994,6 +997,10 @@ client side. Customer easy to edit the contents and get the HTML content for
         });
         it('insert image url', () => {
             (rteObj.contentModule.getEditPanel() as HTMLElement).focus();
+            const newRange: Range = new Range();
+            newRange.setStart(rteObj.inputElement, 0);
+            newRange.setEnd(rteObj.inputElement, 0);
+            rteObj.selectRange(newRange);
             let args: any = {
                 preventDefault: function () { },
                 originalEvent: { currentTarget: document.getElementById('rte_toolbarItems') },
@@ -1616,16 +1623,20 @@ client side. Customer easy to edit the contents and get the HTML content for
                     (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
                     let img: HTMLElement = rteObj.element.querySelector('.e-rte-image') as HTMLElement;
                     expect(img.classList.contains('e-imgleft')).toBe(true);
+                    QTBarModule.imageQTBar.showPopup(10, 131, (rteObj.element.querySelector('.e-rte-image') as HTMLElement));
                     mouseEventArgs.item.subCommand = 'JustifyCenter';
                     (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
                     expect(img.classList.contains('e-imgcenter')).toBe(true);
+                    QTBarModule.imageQTBar.showPopup(10, 131, (rteObj.element.querySelector('.e-rte-image') as HTMLElement));
                     mouseEventArgs.item.subCommand = 'JustifyRight';
                     (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
+                    QTBarModule.imageQTBar.showPopup(10, 131, (rteObj.element.querySelector('.e-rte-image') as HTMLElement));
                     expect(img.classList.contains('e-imgright')).toBe(true);
                     ((<HTMLElement>imgTBItems.item(9)).firstElementChild as HTMLElement).click();
                     popupElement = curDocument.querySelectorAll(".e-rte-dropdown-popup.e-popup-open")[1];
                     mouseEventArgs.item.subCommand = 'Inline';
                     (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
+                    QTBarModule.imageQTBar.showPopup(10, 131, (rteObj.element.querySelector('.e-rte-image') as HTMLElement));
                     expect(img.classList.contains('e-imginline')).toBe(true);
                     mouseEventArgs.item.subCommand = 'Break';
                     (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
@@ -1782,7 +1793,7 @@ client side. Customer easy to edit the contents and get the HTML content for
             (<any>rteObj.imageModule).resizeBtnStat.botRight = true;
             (rteObj.imageModule as any).resizing({ target: resizeBot, pageX: 300 });
             width = 80;
-            //expect(width).toEqual((rteObj.element.querySelector('.e-rte-image') as HTMLElement).offsetWidth);
+            // expect(width).toEqual((rteObj.element.querySelector('.e-rte-image') as HTMLElement).offsetWidth);
             (rteObj.imageModule as any).resizeEnd({ target: resizeBot });
             keyboardEventArgs.ctrlKey = true;
             keyboardEventArgs.keyCode = 90;
@@ -1795,8 +1806,8 @@ client side. Customer easy to edit the contents and get the HTML content for
             (<any>rteObj).imageModule.onKeyDown({ args: keyboardEventArgs });
             (<any>rteObj).formatter.editorManager.undoRedoManager.keyDown({ event: keyboardEventArgs });
             trg = (rteObj.element.querySelector('.e-rte-image') as HTMLElement);
-            //expect(trg.style.outline === '').toBe(true);
-            //expect(rteObj.contentModule.getEditPanel().querySelector('.e-img-resize')).toBe(null);
+            // expect(trg.style.outline === '').toBe(true);
+            // expect(rteObj.contentModule.getEditPanel().querySelector('.e-img-resize')).toBe(null);
         });
     });
     describe('Bug 914676: Image height and width set to auto after replacing an image ', () => {
@@ -2200,7 +2211,34 @@ client side. Customer easy to edit the contents and get the HTML content for
             }, 200);
         });
     });
-
+    describe('942010 - Image Link Is Lost When Dragging and Dropping the Image in the Editor', () => {
+        let rteObj: RichTextEditor;
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                insertImageSettings: {
+                    resize: false
+                },
+                value: `<div><p>First p node-0</p><a href="https://ej2.syncfusion.com/home/" target="_blank" aria-label="Open in new window"></a></div>`,
+            });
+            done();
+        });
+        afterAll((done: Function) => {
+            destroy(rteObj);
+            done();
+        });
+        it("Image Link Is Lost When Dragging and Dropping the Image in the Editor", function () {
+            let image: HTMLElement = createElement("IMG");
+            image.classList.add('e-rte-drag-image');
+            image.setAttribute('src', 'https://www.google.co.in/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png');
+            let fileObj: File = new File(["Nice One"], "sample.png", { lastModified: 0, type: "image/png" });
+            rteObj.inputElement.querySelector('a').appendChild(image);
+            let event: any = { clientX: 40, clientY: 294, dataTransfer: { files: [fileObj] }, preventDefault: function () { return; } };
+            rteObj.focusIn();
+            (rteObj.imageModule as any).insertDragImage(event);
+            expect(rteObj.inputElement.querySelectorAll('img').length === 1).toBe(true);
+            expect(rteObj.inputElement.querySelector('img').parentElement.tagName === 'A').toBe(true);
+        });
+    });
     describe('EJ2-53661- Image is not deleted when press backspace and delete button', () => {
         let rteEle: HTMLElement;
         let rteObj: RichTextEditor;
@@ -3751,7 +3789,7 @@ client side. Customer easy to edit the contents and get the HTML content for
             setTimeout(() => {
                 destroy(rteObj);
                 done();
-            }, 100);
+            }, 2000);
         });
         it(" insert image & caption", (done: Function) => {
             let item: HTMLElement = rteObj.element.querySelector('#' + controlId + '_toolbar_Image');
@@ -4522,6 +4560,35 @@ client side. Customer easy to edit the contents and get the HTML content for
         });
     });
 
+    describe('941896 - Checking resize icon when drag and drop', () => {
+        let rteObj: RichTextEditor;
+        beforeAll((done: Function) => {
+            rteObj = renderRTE({
+                insertImageSettings: {
+                    resize: false
+                },
+                value: `<div><p>First p node-0</p></div>`,
+            });
+            done();
+        });
+        afterAll((done: Function) => {
+            destroy(rteObj);
+            done();
+        });
+        it("When resize is disabled checking after drag and drop if resize icon is present", function () {
+            let image: HTMLElement = createElement("IMG");
+            image.classList.add('e-rte-drag-image');
+            image.setAttribute('src', 'https://www.google.co.in/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png');
+            let fileObj: File = new File(["Nice One"], "sample.png", { lastModified: 0, type: "image/png" });
+            rteObj.inputElement.appendChild(image);
+            let event: any = { clientX: 40, clientY: 294, dataTransfer: { files: [fileObj] }, preventDefault: function () { return; } };
+            rteObj.focusIn();
+            (rteObj.imageModule as any).insertDragImage(event);
+            expect(rteObj.inputElement.querySelectorAll('img').length === 1).toBe(true);
+            expect(rteObj.inputElement.querySelectorAll('.e-rte-imageboxmark').length).toBe(0);
+        });
+    });
+
     describe('EJ2-59978 - Insert image after Max char count - Image Module', () => {
         let rteEle: HTMLElement;
         let rteObj: RichTextEditor;
@@ -4896,6 +4963,48 @@ client side. Customer easy to edit the contents and get the HTML content for
                     done();
                 }, 100);
             }, 100);
+        });
+    });
+    describe('936059 - Insert image and cancel button error check', function () {
+        let rteEle: HTMLElement;
+        let rteObj: RichTextEditor;
+        let QTBarModule: IRenderer;
+        let errorSpy: jasmine.Spy;
+        let originalConsoleError: { (...data: any[]): void; };
+
+        var innerHTML: string = "<p>Testing</p>";
+
+        beforeAll(() => {
+            rteObj = renderRTE({
+                height: 400,
+                toolbarSettings: {
+                    items: ['Image', 'Bold']
+                },
+                value: innerHTML,
+            });
+
+            rteEle = rteObj.element;
+            QTBarModule = getQTBarModule(rteObj);
+            originalConsoleError = console.error;
+            errorSpy = jasmine.createSpy('error');
+            console.error = errorSpy;
+        });
+
+        afterAll(() => {
+            console.error = originalConsoleError;
+            destroy(rteObj);
+        });
+
+        it('Should not throw console error when clicking cancel button in insert image dialog', (done: Function) => {
+            (<any>QTBarModule).renderQuickToolbars(rteObj.imageModule);
+            (<HTMLElement>rteEle.querySelectorAll(".e-toolbar-item")[0]).click();
+            let dialogEle: HTMLElement = rteObj.element.querySelector('.e-dialog');
+            expect(dialogEle).not.toBeNull();
+            let cancelButton = dialogEle.querySelector('.e-btn.e-flat') as HTMLElement;
+            cancelButton.click();
+            expect(rteObj.element.querySelector('.e-dialog')).toBeNull();
+            expect(errorSpy).not.toHaveBeenCalled();
+            done();
         });
     });
     describe('850205 - Editor content get hidden while try to resize the image.', function () {
@@ -6063,6 +6172,134 @@ client side. Customer easy to edit the contents and get the HTML content for
                     console.error('Fetch failed for the URL: ', imageUrl, error);
                     done();
                 });
+        });
+    });
+
+    describe('926553 - Image Overlaps the List After Changing Alignment to Left',()=>{
+        let rteEle: HTMLElement;
+        let rteObj: RichTextEditor;
+        let innerHTML1: string = `<p>Rich Text Editor allows inserting images from online sources as well as the local computers where you want to insert the image in your content.</p>
+                        <li><img alt="Logo" class='e-rte-image' src="https://ej2.syncfusion.com/demos/src/rich-text-editor/images/RTEImage-Feather.png" style="width: 300px;"/></li><li>Basic features include headings, block quotes, numbered lists, bullet lists, and support to insert images, tables, audio, and video.</li>`;
+        beforeAll(() => {
+            rteObj = renderRTE({
+                toolbarSettings: {
+                    items: ['Image']
+                },
+                value: innerHTML1
+            });
+            rteEle = rteObj.element;
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+        it('926553 - Image Overlaps the List After Changing Alignment to Left',(done:Function)=>{
+            expect(rteObj.element.querySelectorAll('.e-rte-content').length).toBe(1);
+            let target:HTMLElement=rteObj.element.querySelector('.e-rte-image');
+            dispatchEvent(target,'mousedown');
+            target.click();
+            dispatchEvent(target,'mouseup');
+            var eventArgs={pageX:50,pageY:300,target:target};
+            (<any>rteObj).imageModule.editAreaClickHandler({ args: eventArgs });
+            (<any>rteObj).imageModule.imgEle = rteObj.contentModule.getEditPanel().querySelector('.e-rte-image');
+            setTimeout(() => {
+                let mouseEventArgs = {
+                    item: { command: 'Images', subCommand: 'JustifyLeft' }
+                };
+                (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
+                let img: HTMLElement = rteObj.element.querySelector('.e-rte-image') as HTMLElement;
+                expect(img.classList.contains('e-imgleft')).toBe(true);
+                expect((img.parentElement.nextElementSibling as HTMLElement).style.clear=='left').toBe(true);
+                done();
+            },200);
+        });
+        it('926553 - Image Overlaps the List After Changing Alignment to Right',(done:Function)=>{
+            expect(rteObj.element.querySelectorAll('.e-rte-content').length).toBe(1);
+            let target:HTMLElement=rteObj.element.querySelector('.e-rte-image');
+            dispatchEvent(target,'mousedown');
+            target.click();
+            dispatchEvent(target,'mouseup');
+            var eventArgs={pageX:50,pageY:300,target:target};
+            (<any>rteObj).imageModule.editAreaClickHandler({ args: eventArgs });
+            (<any>rteObj).imageModule.imgEle = rteObj.contentModule.getEditPanel().querySelector('.e-rte-image');
+            setTimeout(() => {
+                let mouseEventArgs = {
+                    item: { command: 'Images', subCommand: 'JustifyRight' }
+                };
+                (<any>rteObj).imageModule.alignmentSelect(mouseEventArgs);
+                let img: HTMLElement = rteObj.element.querySelector('.e-rte-image') as HTMLElement;
+                expect(img.classList.contains('e-imgright')).toBe(true);
+                expect((img.parentElement.nextElementSibling as HTMLElement).style.clear=='right').toBe(true);
+                done();
+            },200);
+        });
+
+    });
+    
+    describe('924317 -Both oroiginal and the replaced image displayed while replacing the image && Incorrect display style after applying the break style to the image ',function(){
+        let rteObj: RichTextEditor;
+        let controlId: string;
+        beforeAll(() => {
+            rteObj = renderRTE({
+                toolbarSettings: {
+                    items: ['Image']
+                },
+                iframeSettings: {
+                    enable: true
+                }
+            });
+            controlId = rteObj.element.id;
+        });
+        afterAll((done:Function) => { 
+            setTimeout(() => {
+            destroy(rteObj);
+            done();
+        }, 2000);
+        });
+        it(" insert image , caption and Display break and replace the image", () => {
+            let item: HTMLElement = rteObj.element.querySelector('#' + controlId + '_toolbar_Image');
+            item.click();
+            setTimeout(() => {
+                let iframeBody: HTMLElement = (document.querySelector('iframe') as HTMLIFrameElement).contentWindow.document.body as HTMLElement;
+                let dialogEle: any = rteObj.element.querySelector('.e-dialog');
+                (dialogEle.querySelector('.e-img-url') as HTMLInputElement).value = 'https://js.syncfusion.com/demos/web/content/images/accordion/baked-chicken-and-cheese.png';
+                (dialogEle.querySelector('.e-img-url') as HTMLInputElement).dispatchEvent(new Event("input"));
+                expect(rteObj.element.lastElementChild.classList.contains('e-dialog')).toBe(true);
+                (document.querySelector('.e-insertImage.e-primary') as HTMLElement).click();
+                let trg = (iframeBody.querySelector('.e-rte-image') as HTMLElement);
+                expect(!isNullOrUndefined(trg)).toBe(true);
+                expect(iframeBody.querySelectorAll('img').length).toBe(1);
+                expect((iframeBody.querySelector('img') as HTMLImageElement).src).toBe('https://js.syncfusion.com/demos/web/content/images/accordion/baked-chicken-and-cheese.png');
+                (iframeBody.querySelector('img') as HTMLImageElement).style.width = '100px';
+                (iframeBody.querySelector('img') as HTMLImageElement).style.height = '100px';
+                (rteObj.contentModule.getPanel() as HTMLElement).focus();
+                dispatchEvent((rteObj.contentModule.getEditPanel() as HTMLElement), 'mousedown');
+                dispatchEvent((iframeBody.querySelector('img') as HTMLElement), 'mouseup');
+                setTimeout(() => {
+                    (document.querySelectorAll('.e-rte-image-popup .e-toolbar-item button')[2] as HTMLElement).click();
+                    expect(!isNullOrUndefined(iframeBody.querySelector('.e-img-caption'))).toBe(true);
+                    (rteObj.contentModule.getPanel() as HTMLElement).focus();
+                    dispatchEvent((rteObj.contentModule.getPanel() as HTMLElement), 'mousedown');
+                    dispatchEvent((iframeBody.querySelector('img') as HTMLElement), 'mouseup');
+                    setTimeout(()=>{
+                        (document.querySelectorAll('.e-rte-image-popup .e-toolbar-item button')[8] as HTMLElement).click();
+                        (document.querySelector('.e-break') as HTMLElement).click();
+                        (rteObj.contentModule.getPanel() as HTMLElement).focus();
+                        dispatchEvent((rteObj.contentModule.getPanel() as HTMLElement), 'mousedown');
+                        dispatchEvent((iframeBody.querySelector('img') as HTMLElement), 'mouseup');
+                    setTimeout(() => {
+                        (document.querySelectorAll('.e-rte-image-popup .e-toolbar-item button')[0] as HTMLElement).click();
+                        dialogEle = rteObj.element.querySelector('.e-dialog');
+                        (dialogEle.querySelector('.e-img-url') as HTMLInputElement).value = 'https://ej2.syncfusion.com/demos/src/rich-text-editor/images/RTEImage-Feather.png';
+                        (dialogEle.querySelector('.e-img-url') as HTMLInputElement).dispatchEvent(new Event("input"));
+                        expect(rteObj.element.lastElementChild.classList.contains('e-dialog')).toBe(true);
+                        (document.querySelector('.e-insertImage.e-primary') as HTMLElement).click();
+                        expect((iframeBody.querySelector('img') as HTMLImageElement).src).toBe('https://ej2.syncfusion.com/demos/src/rich-text-editor/images/RTEImage-Feather.png');
+                        expect((iframeBody.querySelectorAll('img').length)).toBe(1);
+                        expect((iframeBody.querySelector('img').classList.contains('e-imgbreak'))).toBe(true);
+                    }, 200);
+                }, 200);
+            }, 200);
+        }, 200);
         });
     });
 });

@@ -18,7 +18,7 @@ import { AnnotationResizerLocation, AnnotationSelectorSettingsModel } from '../i
 import { DiagramHtmlElement } from './html-element';
 import { IFormField, IFormFieldBound } from '../form-designer';
 import { FormFieldModel } from '../pdfviewer-model';
-import { FontStyle, FormFieldType } from '../base';
+import { FontStyle, FormFieldType, ISize } from '../base';
 
 /**
  * Renderer module is used to render basic diagram elements
@@ -1078,7 +1078,7 @@ export class Drawing {
                             if (!this.pdfViewer.viewerBase.isFormFieldSelect && !this.pdfViewer.viewerBase.isFormFieldMouseDown &&
                                  !this.pdfViewer.viewerBase.isFormFieldMouseMove) {
                                 this.pdfViewer.viewerBase.isFormFieldSelect = true;
-                                const field: IFormField = {
+                                const field: any = {
                                     name: (node as any).name, id: (node as any).id, value: (node as any).value,
                                     fontFamily: node.fontFamily, fontSize: node.fontSize, fontStyle: (node as any).fontStyle,
                                     color: (node as PdfFormFieldBaseModel).color,
@@ -1087,10 +1087,11 @@ export class Drawing {
                                     visibility: (node as any).visibility,
                                     maxLength: (node as any).maxLength, isRequired: (node as any).isRequired,
                                     isPrint: node.isPrint, rotation: (node as any).rotateAngle, tooltip: (node as any).tooltip,
-                                    options: (node as any).options, isChecked: (node as any).isChecked, isSelected: (node as any).isSelected
+                                    options: (node as any).options, isChecked: (node as any).isChecked,
+                                    isSelected: (node as any).isSelected, bounds: (node as any).bounds
                                 };
                                 if (!this.pdfViewer.formDesignerModule.isFormFieldSizeUpdated) {
-                                    this.pdfViewer.fireFormFieldSelectEvent('formFieldSelect', field, node.pageIndex, this.pdfViewer.formDesignerModule.isProgrammaticSelection);
+                                    this.pdfViewer.fireFormFieldSelectEvent('formFieldSelect', field as IFormField, node.pageIndex, this.pdfViewer.formDesignerModule.isProgrammaticSelection);
                                 }
                                 this.pdfViewer.formDesignerModule.isFormFieldSizeUpdated = false;
                             }
@@ -1130,7 +1131,7 @@ export class Drawing {
                                 if (!this.pdfViewer.viewerBase.isFormFieldSelect && !this.pdfViewer.viewerBase.isFormFieldMouseDown &&
                                      !this.pdfViewer.viewerBase.isFormFieldMouseMove) {
                                     this.pdfViewer.viewerBase.isFormFieldSelect = true;
-                                    const field: IFormField = {
+                                    const field: any = {
                                         value: (node as any).value, fontFamily: node.fontFamily, fontSize: node.fontSize,
                                         fontStyle: (node as any).fontStyle,
                                         color: (node as PdfFormFieldBaseModel).color,
@@ -1140,10 +1141,10 @@ export class Drawing {
                                         maxLength: (node as any).maxLength, isRequired: (node as any).isRequired,
                                         isPrint: node.isPrint, rotation: (node as any).rotateAngle, tooltip: (node as any).tooltip,
                                         options: (node as any).options, isChecked: (node as any).isChecked,
-                                        isSelected: (node as any).isSelected
+                                        isSelected: (node as any).isSelected, bounds: (node as any).bounds
                                     };
                                     if (!this.pdfViewer.formDesignerModule.isFormFieldSizeUpdated) {
-                                        this.pdfViewer.fireFormFieldSelectEvent('formFieldSelect', field, node.pageIndex, this.pdfViewer.formDesignerModule.isProgrammaticSelection);
+                                        this.pdfViewer.fireFormFieldSelectEvent('formFieldSelect', field as IFormField, node.pageIndex, this.pdfViewer.formDesignerModule.isProgrammaticSelection);
                                     }
                                     this.pdfViewer.formDesignerModule.isFormFieldSizeUpdated = false;
                                 }
@@ -2863,11 +2864,15 @@ export class Drawing {
         if (actualObject && actualObject.shapeAnnotationType === 'FreeText' && this.pdfViewer.annotationModule.stickyNotesAnnotationModule.textFromCommentPanel) {
             actualObject.wrapper.width = undefined;
             actualObject.wrapper.height = undefined;
-            actualObject.wrapper.measure(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height));
+            const pageHeight: number = this.pdfViewer.viewerBase.pageSize[actualObject.pageIndex].height;
+            actualObject.wrapper.measureFreeText(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height),
+                                                 pageHeight);
             this.pdfViewer.annotationModule.stickyNotesAnnotationModule.textFromCommentPanel = false;
         }
         else {
-            actualObject.wrapper.measure(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height));
+            const pageHeight: number = this.pdfViewer.viewerBase.pageSize[actualObject.pageIndex].height;
+            actualObject.wrapper.measureFreeText(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height),
+                                                 pageHeight);
         }
         actualObject.wrapper.arrange(actualObject.wrapper.desiredSize);
         if (actualObject && actualObject.formFieldAnnotationType) {
@@ -2919,7 +2924,9 @@ export class Drawing {
                     children[parseInt(i.toString(), 10)].width = actualObject.bounds.width;
                 }
             }
-            actualObject.wrapper.measure(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height));
+            const pageHeight: number = this.pdfViewer.viewerBase.pageSize[actualObject.pageIndex].height;
+            actualObject.wrapper.measureFreeText(new Size(actualObject.wrapper.bounds.width, actualObject.wrapper.bounds.height),
+                                                 pageHeight);
             actualObject.wrapper.arrange(actualObject.wrapper.desiredSize);
         }
         this.pdfViewer.renderDrawing(undefined, actualObject.pageIndex);

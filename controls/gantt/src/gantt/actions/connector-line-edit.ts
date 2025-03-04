@@ -206,19 +206,16 @@ export class ConnectorLineEdit {
                 }
             }
             if (preArray[j as number].includes('-')) {
-                if (preArray[j as number].includes('-') && preArray[j as number].includes('days')) {
-                    predecessorName = preArray[j as number].slice(-9).toString();
-                }
-                if (preArray[j as number].includes('-') && preArray[j as number].includes('day')) {
-                    predecessorName = preArray[j as number].slice(-8).toString();
-                }
-                else {
-                    predecessorName = preArray[j as number].slice(-2).toString();
+                if (preArray[j as number].includes('-') && (preArray[j as number].includes('days') || preArray[j as number].includes('day'))) {
+                    const splitName: string[] = preArray[j as number].split(/-(?=\d)/);
+                    if (splitName.length > 0) {
+                        predecessorName = splitName[splitName.length - 1];
+                    }
                 }
                 if (preArray[j as number].includes('-') && /[A-Za-z]/.test(predecessorName)) {
                     const indexFS: number = preArray[j as number].indexOf(predecessorName);
                     if (indexFS !== -1) {
-                        firstPart = preArray[j as number].substring(0, indexFS);
+                        firstPart = preArray[j as number].substring(0, indexFS - 1);
                         if (firstPart.includes('-')) {
                             isAlpha = true;
                         }
@@ -331,80 +328,7 @@ export class ConnectorLineEdit {
         return true;
 
     }
-    // Get the root parent of the record
-    public getRootParent(rec: IGanttData): IGanttData {
-        let parentRec: IGanttData = rec;
-        if (rec.parentItem) {
-            parentRec = this.parent.flatData.filter((item: IGanttData) => {
-                return item.uniqueID === rec.parentUniqueID;
-            })[0];
-            if (parentRec.parentItem) {
-                parentRec = this.getRootParent(parentRec);
-            }
-            return parentRec;
-        }
-        return parentRec;
-    }
-    // To check whether the predecessor drawn is valid for parent task
-    public validateParentPredecessor(fromRecord: IGanttData, toRecord: IGanttData): boolean {
-        if (fromRecord && toRecord) {
-            if (toRecord.hasChildRecords && !fromRecord.hasChildRecords) {
-                if (fromRecord.parentUniqueID === toRecord.uniqueID) {
-                    return false;
-                }
-                else {
-                    do {
-                        if (fromRecord.parentItem) {
-                            fromRecord = this.parent.flatData[this.parent.ids.indexOf(fromRecord.parentItem.taskId)];
-                            if (fromRecord.uniqueID === toRecord.uniqueID) {
-                                return false;
-                            }
-                        }
-                    }
-                    while (fromRecord.parentItem);
-                }
-            }
-            else if (!toRecord.hasChildRecords && fromRecord.hasChildRecords) {
-                if (toRecord.parentUniqueID === fromRecord.uniqueID) {
-                    return false;
-                }
-                else {
-                    do {
-                        if (toRecord.parentItem) {
-                            toRecord = this.parent.flatData[this.parent.ids.indexOf(toRecord.parentItem.taskId)];
-                            if (toRecord.uniqueID === fromRecord.uniqueID) {
-                                return false;
-                            }
-                        }
-                    }
-                    while (toRecord.parentItem);
-                }
-            }
-            else if (toRecord.hasChildRecords && fromRecord.hasChildRecords) {
-                if (toRecord.parentItem && fromRecord.parentItem) {
-                    if (fromRecord.parentUniqueID === toRecord.uniqueID || fromRecord.uniqueID === toRecord.parentUniqueID) {
-                        return false;
-                    }
 
-                }
-                else {
-                    if (!toRecord.parentItem && fromRecord.parentItem) {
-                        const fromRootParent: IGanttData = this.parent.connectorLineEditModule.getRootParent(fromRecord);
-                        if (fromRootParent.uniqueID === toRecord.uniqueID) {
-                            return false;
-                        }
-                    }
-                    else if (toRecord.parentItem && !fromRecord.parentItem) {
-                        const toRootParent: IGanttData = this.parent.connectorLineEditModule.getRootParent(toRecord);
-                        if (toRootParent.uniqueID === fromRecord.uniqueID) {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        return true;
-    }
     /**
      * To validate predecessor relations
      *
@@ -434,7 +358,7 @@ export class ConnectorLineEdit {
                         const num: number = this.parent.ids.indexOf(predecessorIdArray[predecessorIdArray.length - 1]);
                         const fromRecord: IGanttData = this.parent.currentViewData[num as number];
                         if (fromRecord && ganttRecord) {
-                            flag = this.validateParentPredecessor(fromRecord, ganttRecord);
+                            flag = this.parent.predecessorModule.validateParentPredecessor(fromRecord, ganttRecord);
                         }
                     }
                 }

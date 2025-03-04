@@ -22,6 +22,7 @@ import { ServiceLocator } from '../services/service-locator';
 import { ON_BEGIN } from './../../common/constant';
 import { HtmlToolbarStatus } from './html-toolbar-status';
 import { XhtmlValidation } from './xhtml-validation';
+import * as CONSTANTS from './../../editor-manager/base';
 
 /**
  * `HtmlEditor` module is used to HTML editor
@@ -259,7 +260,7 @@ export class HtmlEditor {
             if (range.startContainer.textContent.charCodeAt(0) === 8203) {
                 const previousLength: number = range.startContainer.textContent.length;
                 const previousRange: number = range.startOffset;
-                range.startContainer.textContent = range.startContainer.textContent.replace(regEx, '');
+                this.removeZeroWidthSpaces(range.startContainer, regEx);
                 pointer = previousRange === 0 ? previousRange : previousRange - (previousLength - range.startContainer.textContent.length);
                 this.parent.formatter.editorManager.nodeSelection.setCursorPoint(
                     this.parent.contentModule.getDocument(), range.startContainer as Element, pointer);
@@ -280,7 +281,7 @@ export class HtmlEditor {
                         continue;
                     }
                     if (currentChild.textContent.replace(regEx, '').trim().length > 0 && currentChild.textContent.includes('\u200B')) {
-                        currentChild.innerHTML = currentChild.innerHTML.replace(regEx, '');
+                        this.removeZeroWidthSpaces(currentChild, regEx);
                     }
                     currentChild = currentChild.nextElementSibling;
                 }
@@ -339,7 +340,17 @@ export class HtmlEditor {
             }
         }
     }
-
+    private removeZeroWidthSpaces(node: Node, regex: RegExp): void {
+        if (node.nodeType === Node.TEXT_NODE) {
+            if (node.textContent !== null) {
+                node.textContent = node.textContent.replace(regex, '');
+            }
+            return;
+        }
+        node.childNodes.forEach((child: ChildNode) => {
+            this.removeZeroWidthSpaces(child, regex);
+        });
+    }
     private onKeyDown(e: NotifyArgs): void {
         if ((e.args as KeyboardEventArgs).ctrlKey && (e.args as KeyboardEventArgs).keyCode === 65) {
             this.isCopyAll = true;
@@ -384,23 +395,12 @@ export class HtmlEditor {
                             this.rangeCollection.push(this.nodeSelectionObj.getRange(this.contentRenderer.getDocument()));
                         }
                     } else {
-                        if (!args.shiftKey) {
-                            if (selection.startOffset !== selection.endOffset && selection.startOffset === 0) {
-                                this.marginTabAdd(args.shiftKey, alignmentNodes);
-                            }
-                            else {
-                                InsertHtml.Insert(this.contentRenderer.getDocument(), '&nbsp;&nbsp;&nbsp;&nbsp;');
-                                this.rangeCollection.push(this.nodeSelectionObj.getRange(this.contentRenderer.getDocument()));
-                            }
-                        } else if (this.rangeCollection.length > 0 &&
-                            this.rangeCollection[this.rangeCollection.length - 1].startContainer.textContent.length === 4) {
-                            const textCont: Node = this.rangeCollection[this.rangeCollection.length - 1].startContainer;
-                            this.nodeSelectionObj.setSelectionText(
-                                this.contentRenderer.getDocument(), textCont, textCont, 0, textCont.textContent.length);
-                            InsertHtml.Insert(this.contentRenderer.getDocument(), document.createTextNode(''));
-                            this.rangeCollection.pop();
-                        } else {
+                        if (selection.startOffset !== selection.endOffset && selection.startOffset === 0) {
                             this.marginTabAdd(args.shiftKey, alignmentNodes);
+                        }
+                        else {
+                            InsertHtml.Insert(this.contentRenderer.getDocument(), '&nbsp;&nbsp;&nbsp;&nbsp;');
+                            this.rangeCollection.push(this.nodeSelectionObj.getRange(this.contentRenderer.getDocument()));
                         }
                     }
                 }
@@ -571,7 +571,7 @@ export class HtmlEditor {
             if (!isNOU(findBlockElement[0]) && currentRange.collapsed && currentRange.startOffset === 0 && currentRange.endOffset === 0 && (findBlockElement[0] as HTMLElement).style.marginLeft !== '') {
                 (findBlockElement[0] as HTMLElement).style.marginLeft = (parseInt((findBlockElement[0] as HTMLElement).style.marginLeft, 10) <= 20) ? '' : (parseInt((findBlockElement[0] as HTMLElement).style.marginLeft, 10) - 20 + 'px');
             }
-            if (isNOU(this.oldRangeElement)) {
+            if (isNOU(this.oldRangeElement) && isNOU(findBlockElement[0].previousSibling)) {
                 return;
             } else if (findBlockElement[0].previousSibling) {
                 const prevSibling: HTMLElement = findBlockElement[0].previousSibling as HTMLElement;
@@ -580,11 +580,13 @@ export class HtmlEditor {
                     if (prevSibling.lastChild.nodeName === 'BR') {
                         prevSibling.removeChild(prevSibling.lastChild);
                     }
-                    const cursorpointer: number = prevSibling.lastChild.textContent.length;
-                    const lastChild: HTMLElement = prevSibling.lastChild as HTMLElement;
+                    const lastPosition: { node: Node; offset: number } | null = this.findLastTextPosition(prevSibling);
+                    const cursorpointer: number = lastPosition.offset;
+                    const lastChild: Element = lastPosition.node as Element;
                     const childNodes: Node[] = Array.from(currentElement.childNodes);
+                    const previousBlockElements: Node = this.getImmediateBlockNode(lastChild);
                     for (let i: number = 0; i < childNodes.length; i++) {
-                        prevSibling.appendChild(childNodes[i as number].cloneNode(true));
+                        previousBlockElements.appendChild(childNodes[i as number].cloneNode(true));
                     }
                     this.parent.formatter.editorManager.nodeSelection.setCursorPoint(
                         this.parent.contentModule.getDocument(),
@@ -592,6 +594,7 @@ export class HtmlEditor {
                         cursorpointer
                     );
                     currentElement.parentNode.removeChild(currentElement);
+                    (e.args as KeyboardEventArgs).preventDefault();
                 } else {
                     prevSibling.parentNode.removeChild(prevSibling);
                 }
@@ -645,6 +648,24 @@ export class HtmlEditor {
                 }
             }
         }
+    }
+    private findLastTextPosition(element: Node): { node: Node; offset: number } | null {
+        if (element.nodeType === Node.TEXT_NODE) {
+            return { node: element, offset: element.textContent ? element.textContent.length : 0 };
+        }
+        for (let i: number = element.childNodes.length - 1; i >= 0; i--) {
+            const lastPosition: { node: Node; offset: number } | null = this.findLastTextPosition(element.childNodes[i as number]);
+            if (lastPosition) {
+                return lastPosition;
+            }
+        }
+        return null;
+    }
+    private getImmediateBlockNode(node: Node): Node {
+        while (node && CONSTANTS.BLOCK_TAGS.indexOf(node.nodeName.toLocaleLowerCase()) < 0) {
+            node = node.parentNode;
+        }
+        return node;
     }
     private deleteCleanup(e: NotifyArgs, currentRange: Range): void {
         let isLiElement: boolean = false;
@@ -1003,6 +1024,12 @@ export class HtmlEditor {
                 default:
                     this.parent.formatter.process(this.parent, args, args.originalEvent, null);
                     break;
+                }
+                if (!isNOU(this.parent.quickToolbarModule) && ((isNOU(this.parent.quickToolbarModule.imageQTBar) && item.subCommand === 'Image') ||
+                    (isNOU(this.parent.quickToolbarModule.audioQTBar) && item.subCommand === 'Audio') ||
+                    (isNOU(this.parent.quickToolbarModule.videoQTBar) && item.subCommand === 'Video') ||
+                    (isNOU(this.parent.quickToolbarModule.linkQTBar) && item.subCommand === 'CreateLink'))) {
+                    this.parent.notify(events.renderQuickToolbar, {});
                 }
             }
         } else{

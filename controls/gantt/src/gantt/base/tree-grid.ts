@@ -10,7 +10,7 @@ import { ITaskData, IGanttData } from './interface';
 import { DataStateChangeEventArgs } from '@syncfusion/ej2-treegrid';
 import { QueryCellInfoEventArgs, HeaderCellInfoEventArgs, RowDataBoundEventArgs } from '@syncfusion/ej2-grids';
 import { ColumnMenuOpenEventArgs, ColumnMenuClickEventArgs } from '@syncfusion/ej2-grids';
-import { isCountRequired } from './utils';
+import { isCountRequired, isEmptyObject } from './utils';
 import { AutoComplete } from '@syncfusion/ej2-dropdowns';
 
 /** @hidden */
@@ -86,7 +86,9 @@ export class GanttTreeGrid {
         setValue('registeredTemplate', this.registeredTemplate, this.parent.treeGrid);
         const ref: string = 'viewContainerRef';
         setValue('viewContainerRef', this.parent[`${ref}`], this.parent.treeGrid);
-        this.parent.treeGrid.appendTo(this.treeGridElement);
+        if (!this.treeGridElement.contains(this.parent.treeGrid.element)) {
+            this.parent.treeGrid.appendTo(this.treeGridElement);
+        }
         if (this.parent.treeGrid.grid && this.parent.toolbarModule && (this.parent as Gantt).isReact) {
             (this.parent.treeGrid.grid as Grid).portals = (this.parent as Gantt).portals;
         }
@@ -497,6 +499,10 @@ export class GanttTreeGrid {
                         this.parent.getTaskByUniqueID(data.uniqueID).taskData[this.parent.taskFields.resourceInfo] = data.taskData[this.parent.taskFields.resourceInfo];
                     }
                 }
+                if (isEmptyObject(this.currentEditRow) && args['column'] && args['column'].edit && args['column'].field === this.parent.taskFields.resourceInfo) {
+                    const field: string = this.parent.taskFields.resourceInfo;
+                    this.currentEditRow = { [field]: data['resources'] };
+                }
                 this.parent.editModule.cellEditModule.initiateCellEdit(args, this.currentEditRow);
                 this.parent.editModule.cellEditModule.isCellEdit = false;
                 this.currentEditRow = {};
@@ -570,7 +576,12 @@ export class GanttTreeGrid {
                 // To maintain 1st record selection, while deleting the last parent record at Virtual mode
                 dataCollection.map((data: Object, index: number) => {
                     if (!isNullOrUndefined(this.parent.currentSelection)
-                    && (data['ganttProperties'].taskId === this.parent.currentSelection[this.parent.taskFields.id]))  {
+                    && (data['ganttProperties'].taskId === this.parent.currentSelection[this.parent.taskFields.id]) &&
+                    (
+                        (this.parent.viewType === 'ResourceView' &&
+                         data['ganttProperties'].rowUniqueID === this.parent.currentSelection.rowUniqueID) ||
+                        this.parent.viewType !== 'ResourceView'
+                    ))  {
                         indexvalue = index;
                     }
                 });
@@ -584,6 +595,9 @@ export class GanttTreeGrid {
         }
         if (this.parent.undoRedoModule) {
             this.parent.undoRedoModule['isFromUndoRedo'] = false;
+        }
+        if (getValue('requestType', args) === 'refresh') {
+            this.parent.initiateEditAction(false);
         }
         this.parent.trigger('actionComplete', updatedArgs);
         if ( this.parent.showOverAllocation && !this.parent.allowTaskbarOverlap) {

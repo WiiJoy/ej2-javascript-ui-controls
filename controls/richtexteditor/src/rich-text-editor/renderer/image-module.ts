@@ -36,7 +36,10 @@ export class Image {
     private contentModule: IRenderer;
     private rendererFactory: RendererFactory;
     private quickToolObj: IRenderer;
-    private imgResizeDiv: HTMLElement;
+    /**
+     * @hidden
+     */
+    public imgResizeDiv: HTMLElement;
     private imgDupPos: { [key: string]: number | string };
     private resizeBtnStat: { [key: string]: boolean };
     private imgEle: HTMLImageElement;
@@ -269,13 +272,8 @@ export class Image {
             if (this.parent.formatter.getUndoRedoStack().length === 0) {
                 this.parent.formatter.saveData();
             }
-            if (this.parent.iframeSettings.enable) {
-                this.pageX = (e as PointerEvent).screenX;
-                this.pageY = (e as PointerEvent).screenY;
-            } else {
-                this.pageX = this.getPointX(e);
-                this.pageY = this.getPointY(e);
-            }
+            this.pageX = this.getPointX(e);
+            this.pageY = this.getPointY(e);
             e.preventDefault();
             e.stopImmediatePropagation();
             this.resizeBtnInit();
@@ -356,21 +354,40 @@ export class Image {
         this.imgResizePos(e, this.imgResizeDiv);
         this.resizeImgDupPos(e);
         this.contentModule.getEditPanel().appendChild(this.imgResizeDiv);
+        if (this.parent.element.style.height === 'auto') {
+            this.imgResizePos(e, this.imgResizeDiv);
+        }
     }
 
     private getPointX(e: PointerEvent | TouchEvent): number {
-        if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
-            return (e as TouchEvent).touches[0].pageX;
+        if (this.parent.iframeSettings.enable) {
+            if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
+                return (e as TouchEvent).touches[0].screenX;
+            } else {
+                return (e as PointerEvent).screenX;
+            }
         } else {
-            return (e as PointerEvent).pageX;
+            if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
+                return (e as TouchEvent).touches[0].pageX;
+            } else {
+                return (e as PointerEvent).pageX;
+            }
         }
     }
 
     private getPointY(e: PointerEvent | TouchEvent): number {
-        if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
-            return (e as TouchEvent).touches[0].pageY;
+        if (this.parent.iframeSettings.enable) {
+            if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
+                return (e as TouchEvent).touches[0].screenY;
+            } else {
+                return (e as PointerEvent).screenY;
+            }
         } else {
-            return (e as PointerEvent).pageY;
+            if ((e as TouchEvent).touches && (e as TouchEvent).touches.length) {
+                return (e as TouchEvent).touches[0].pageY;
+            } else {
+                return (e as PointerEvent).pageY;
+            }
         }
     }
 
@@ -493,14 +510,9 @@ export class Image {
         }
     }
 
-    private adjustDimensionsByAspectRatio(width: number, height: number, aspectRatio: number, isWidthPrimary: boolean): ImageDimension {
-        if (isWidthPrimary) {
-            height = Math.round(width / aspectRatio);
-            width = Math.round(height * aspectRatio);
-        } else {
-            width = Math.round(height * aspectRatio);
-            height = Math.round(width / aspectRatio);
-        }
+    private adjustDimensionsByAspectRatio(width: number, height: number, aspectRatio: number): ImageDimension {
+        height = Math.round(width / aspectRatio);
+        width = Math.round(height * aspectRatio);
         return { width: width, height: height };
     }
 
@@ -535,8 +547,8 @@ export class Image {
         if (this.resizeBtnStat.botRight || this.resizeBtnStat.botLeft || this.resizeBtnStat.topRight || this.resizeBtnStat.topLeft) {
             if (this.parent.iframeSettings.enable) {
                 const resizeFactor: number[] = this.getResizeFactor(this.currentResizeHandler);
-                const currentScreenX: number = (e as PointerEvent).screenX;
-                const currentScreenY: number = (e as PointerEvent).screenY;
+                const currentScreenX: number = this.getPointX(e);
+                const currentScreenY: number = this.getPointY(e);
                 const currentWidth: number  = this.imgEle.clientWidth;
                 const currentHeight: number = this.imgEle.clientHeight;
                 const deltaX: number = currentScreenX - this.pageX;
@@ -569,9 +581,7 @@ export class Image {
     private adjustDimensions (width: number, height: number, diffX: number, diffY: number, aspectRatio: number): ImageDimension {
         width = (width < 16) ? 16 : width;
         height = (height < 16) ? 16 : height;
-        const isWidthPrimary: boolean = width > height;
-        const dimensions: { width: number, height: number } =
-            this.adjustDimensionsByAspectRatio(width, height, aspectRatio, isWidthPrimary);
+        const dimensions: { width: number, height: number } = this.adjustDimensionsByAspectRatio(width, height, aspectRatio);
         return dimensions;
     }
 
@@ -583,7 +593,7 @@ export class Image {
         return image.clientWidth / image.clientHeight;
     }
 
-    private cancelResizeAction(): void {
+    public cancelResizeAction(): void {
         EventHandler.remove(this.contentModule.getDocument(), Browser.touchMoveEvent, this.resizing);
         EventHandler.remove(this.contentModule.getDocument(), Browser.touchEndEvent, this.resizeEnd);
         if (this.imgEle && this.imgResizeDiv && this.contentModule.getEditPanel().contains(this.imgResizeDiv)) {
@@ -1194,6 +1204,7 @@ export class Image {
                     subCommand: ((e.args as ClickEventArgs).item as IDropDownItemModel).subCommand
                 });
             this.dialogObj.hide({ returnValue: false } as Event);
+            this.parent.inputElement.focus({ preventScroll: true });
         }
     }
 
@@ -1487,7 +1498,7 @@ export class Image {
             target: (Browser.isDevice) ? document.body : this.parent.element,
             animationSettings: { effect: 'None' },
             close: (event: BeforeCloseEventArgs) => {
-                if (event && event.closedBy !== 'user action' && this.uploadObj.filesData.length > 0) {
+                if (event && event.closedBy !== 'user action' && this.uploadObj && this.uploadObj.filesData.length > 0) {
                     this.uploadObj.remove();
                 }
                 this.parent.isBlur = false;
@@ -1550,7 +1561,7 @@ export class Image {
 
     private cancelDialog(): void {
         this.parent.isBlur = false;
-        if (this.uploadObj.filesData.length > 0) {
+        if (!isNOU(this.uploadObj) && this.uploadObj.filesData.length > 0) {
             this.uploadObj.remove();
         }
         this.dialogObj.hide({ returnValue: true } as Event);
@@ -1672,7 +1683,7 @@ export class Image {
         const previousSubCommand: string = ((this as IImageNotifyArgs).args as ActionBeginEventArgs).item.subCommand;
         ((this as IImageNotifyArgs).args as ActionBeginEventArgs).item.subCommand = (e.target as HTMLElement).innerHTML === 'Update' ? 'Replace' : ((this as IImageNotifyArgs).args as ActionBeginEventArgs).item.subCommand;
         if (!isNOU(proxy.uploadUrl) && proxy.uploadUrl.url !== '') {
-            proxy.uploadUrl.cssClass = (proxy.parent.insertImageSettings.display === 'inline' ?
+            proxy.uploadUrl.cssClass = (((this as IImageNotifyArgs).selectParent && ((this as IImageNotifyArgs).selectParent[0] as HTMLElement).classList.contains('e-imgbreak') === true)) ? classes.CLS_IMGBREAK : (proxy.parent.insertImageSettings.display === 'inline' ?
                 classes.CLS_IMGINLINE : classes.CLS_IMGBREAK);
             proxy.dialogObj.hide({ returnValue: false } as Event);
             if (proxy.dialogObj !== null) {
@@ -1691,7 +1702,11 @@ export class Image {
                 closest(
                     // eslint-disable-next-line
                     (this as IImageNotifyArgs).selection.range.startContainer.parentNode, '[id=' + "'" + proxy.contentModule.getPanel().id + "'" + ']'))) {
-                (proxy.contentModule.getEditPanel() as HTMLElement).focus();
+                if (proxy.contentModule.getPanel().tagName === 'IFRAME' && ((this as IImageNotifyArgs).args as ActionBeginEventArgs).item.subCommand === 'Replace') {
+                    (proxy.contentModule.getPanel() as HTMLElement);
+                } else {
+                    (proxy.contentModule.getEditPanel() as HTMLElement);
+                }
                 const range: Range = proxy.parent.formatter.editorManager.nodeSelection.getRange(proxy.contentModule.getDocument());
                 (this as IImageNotifyArgs).selection = proxy.parent.formatter.editorManager.nodeSelection.save(
                     range, proxy.contentModule.getDocument());
@@ -1700,7 +1715,7 @@ export class Image {
             const regex: RegExp = /[\w-]+.(jpg|png|jpeg|gif)/g;
             const matchUrl: string = (!isNOU(url.match(regex)) && proxy.parent.editorMode === 'HTML') ? url.match(regex)[0] : '';
             const value: IImageCommandsArgs = {
-                cssClass: (proxy.parent.insertImageSettings.display === 'inline' ? classes.CLS_IMGINLINE : classes.CLS_IMGBREAK),
+                cssClass: (((this as IImageNotifyArgs).selectParent && ((this as IImageNotifyArgs).selectParent[0] as HTMLElement).classList.contains('e-imgbreak') === true)) ? classes.CLS_IMGBREAK : (proxy.parent.insertImageSettings.display === 'inline' ? classes.CLS_IMGINLINE : classes.CLS_IMGBREAK),
                 url: url, selection: (this as IImageNotifyArgs).selection, altText: matchUrl,
                 selectParent: (this as IImageNotifyArgs).selectParent, width: {
                     width: proxy.parent.insertImageSettings.width, minWidth: proxy.parent.insertImageSettings.minWidth,
@@ -1803,6 +1818,7 @@ export class Image {
             proxy.imgResizePos(e.selectNode[0] as HTMLImageElement, this.imgResizeDiv);
         }
         proxy.dialogObj.hide({ returnValue: true } as Event);
+        proxy.parent.inputElement.focus({ preventScroll: true });
     }
 
     private insertImage(e: IImageNotifyArgs): void {
@@ -1874,6 +1890,9 @@ export class Image {
                 filesData = e.filesData;
                 this.parent.trigger(events.imageSelected, selectArgs, (selectArgs: SelectedEventArgs) => {
                     if (!selectArgs.cancel) {
+                        if (isNOU(selectArgs.filesData[0])) {
+                            return;
+                        }
                         this.checkExtension(selectArgs.filesData[0]);
                         altText = selectArgs.filesData[0].name.replace(/\.[a-zA-Z0-9]+$/, '');
                         if (this.parent.editorMode === 'HTML' && isNOU(this.parent.insertImageSettings.path)) {
@@ -2128,14 +2147,19 @@ export class Image {
                     const range: Range = this.parent.formatter.editorManager.nodeSelection.getRange(
                         this.parent.contentModule.getDocument());
                     if (imgElement && imgElement.tagName === 'IMG') {
-                        if (imgElement.nextElementSibling) {
-                            if (imgElement.nextElementSibling.classList.contains(classes.CLS_IMG_INNER)) {
-                                range.insertNode(imgElement.parentElement.parentElement);
+                        const imgCaption: Element = imgElement.closest('.e-rte-img-caption');
+                        if (!isNOU(imgCaption)) {
+                            range.insertNode(imgCaption);
+                        } else {
+                            const anchorElement: HTMLElement = imgElement.closest('a');
+                            //To check if the anchor has only one image element
+                            const isAnchorValid: boolean = anchorElement && anchorElement.tagName === 'A' &&
+                                this.hasOnlyImage(anchorElement);
+                            if (isAnchorValid) {
+                                range.insertNode(anchorElement);
                             } else {
                                 range.insertNode(imgElement);
                             }
-                        } else {
-                            range.insertNode(imgElement);
                         }
                         imgElement.classList.remove(classes.CLS_RTE_DRAG_IMAGE);
                         const imgArgs: ActionCompleteEventArgs = { elements: [imgElement] };
@@ -2144,7 +2168,9 @@ export class Image {
                         });
                         this.parent.formatter.editorManager.nodeSelection.Clear(this.contentModule.getDocument());
                         const args: MouseEvent = e as MouseEvent;
-                        this.resizeStart(args as PointerEvent, imgElement);
+                        if (this.parent.insertImageSettings.resize) {
+                            this.resizeStart(args as PointerEvent, imgElement);
+                        }
                         this.hideImageQuickToolbar();
                     }
                 } else {
@@ -2152,6 +2178,29 @@ export class Image {
                 }
             });
         }
+    }
+
+    private hasOnlyImage(anchor: HTMLElement): boolean {
+        let imageFound: boolean = false;
+        for (let i: number = 0; i < anchor.childNodes.length; i++) {
+            const currentNode: Node = anchor.childNodes[i as number];
+            if (currentNode.nodeType === Node.TEXT_NODE) {
+                const text: string = currentNode.textContent.replace(/[\u200B\u200C\u200D]/g, '').trim(); // Remove zero-width spaces
+                if (text !== '') {
+                    return false; // Found non-empty text node, so it's invalid
+                }
+            } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
+                if ((currentNode as HTMLElement).tagName === 'IMG') {
+                    if (imageFound) {
+                        return false; // Found more than one image, so it's invalid
+                    }
+                    imageFound = true;
+                } else {
+                    return false; // Found a non-image element, so it's invalid
+                }
+            }
+        }
+        return imageFound; // Return true only if exactly one img was found
     }
 
     private onSelect(args: DragEvent): void {

@@ -2,6 +2,56 @@
 
 ## [Unreleased]
 
+## 28.2.6 (2025-02-18)
+
+### Toolbar
+
+#### Bug Fixes
+
+- `#I686672` - An issue with the toolbar scrollable arrows not removing after resizing page to full width, has been resolved.
+
+### Carousel
+
+#### Bug Fixes
+
+- `#I688740` - An issue with the carousel item moving when trying to navigate using the tab key has been resolved.
+
+### TreeView
+
+#### Bug Fixes
+
+- `#I682127` - Resolved an issue where the checkbox state was not maintained properly during custom filtering operations in the `DropdownTree` component.
+
+## 28.2.5 (2025-02-11)
+
+### Tab
+
+#### Bug Fixes
+
+- `#I686179` - An issue where the Tab content not loaded properly while switching the tabs has been fixed.
+
+### TreeView
+
+#### Bug Fixes
+
+- `#I686187` - The expand animation issue, which occurred when adding and removing nodes inside the TreeView component's expanding event handler, has been resolved.
+
+## 28.2.4 (2025-02-04)
+
+### TreeView
+
+#### Bug Fixes
+
+- `#I681955` - Resolved an issue where the `aria-activedescendant` attribute was incorrectly updated when the TreeView component was empty.
+  
+## 28.2.3 (2025-01-29)
+
+### TreeView
+
+#### Bug Fixes
+
+- `#I677520` - The issue with TreeView is not focusable when dynamically adding a data source to an empty TreeView component has been resolved.
+
 ## 28.1.41 (2025-01-21)
 
 ### Menu

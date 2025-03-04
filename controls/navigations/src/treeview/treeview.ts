@@ -1320,7 +1320,9 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
 
     private initialize(): void {
         this.element.setAttribute('role', 'tree');
-        this.element.setAttribute('aria-activedescendant', this.element.id + '_active');
+        if (!isNOU(this.fields.dataSource) && Array.isArray(this.fields.dataSource) && this.fields.dataSource.length !== 0) {
+            this.element.setAttribute('aria-activedescendant', this.element.id + '_active');
+        }
         this.setCssClass(null, this.cssClass);
         this.setEnableRtl();
         this.setFullRow(this.fullRowSelect);
@@ -2040,16 +2042,26 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
         }
     }
     private getSelectedChildNodeDetails(dataUid: string): { [key: string]: Object }[][] {
+        const childKey: string = typeof this.fields.child === 'string' ? this.fields.child : null;
+        const dataId: string = this.fields.id;
+        const parentKey: string = this.fields.parentID;
         return this.checkedNodes
             .map((checkedNodeId: string | number): { [key: string]: any }[] => {
                 return <{ [key: string]: Object }[]> new DataManager(this.DDTTreeData)
                     .executeLocal(new Query().where('id', 'equal', checkedNodeId, true))[0];
             })
             .filter((childNode: object | null | undefined): boolean => {
-                if (childNode && typeof childNode === 'object' && 'pid' in childNode) {
-                    const childNodePid: string = (childNode as { pid: string }).pid;
-                    if (!isNOU(childNodePid)) {
-                        return childNodePid.toString() === dataUid;
+                if (childNode && typeof childNode === 'object' && (parentKey in childNode || childKey in childNode)) {
+                    if (!isNOU(childKey) && childKey in childNode && Array.isArray(childNode[childKey as keyof typeof childNode])) {
+                        const matchNode: string = childNode[dataId as keyof typeof childNode];
+                        if (!isNOU(matchNode)) {
+                            return matchNode.toString() === dataUid;
+                        }
+                    } else {
+                        const childNodePid: string = childNode[parentKey as keyof typeof childNode];
+                        if (!isNOU(childNodePid)) {
+                            return childNodePid.toString() === dataUid;
+                        }
                     }
                 }
                 return false;
@@ -2172,13 +2184,17 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
             const checkBoxes: HTMLElement[] = selectAll('.' + CHECKBOXWRAP, this.element);
             if (this.loadOnDemand) {
                 for (let index: number = 0; index < checkBoxes.length; index++) {
+                    const liEle: Element = closest(checkBoxes[parseInt(index.toString(), 10)], '.' + LISTITEM);
                     this.updateFieldChecked(checkBoxes[parseInt(index.toString(), 10)], doCheck);
                     this.changeState(checkBoxes[parseInt(index.toString(), 10)], doCheck ? 'check' : 'uncheck', null, null, null, doCheck);
+                    this.updateOldCheckedData([this.getNodeData(liEle)]);
                 }
             } else {
                 for (let index: number = 0; index < checkBoxes.length; index++) {
+                    const liEle: Element = closest(checkBoxes[parseInt(index.toString(), 10)], '.' + LISTITEM);
                     this.updateFieldChecked(checkBoxes[parseInt(index.toString(), 10)], doCheck);
                     this.changeState(checkBoxes[parseInt(index.toString(), 10)], doCheck ? 'check' : 'uncheck');
+                    this.updateOldCheckedData([this.getNodeData(liEle)]);
                 }
             }
         }
@@ -2476,11 +2492,7 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
         if (!isNullOrUndefined(firstUl)) {
             firstUl.setAttribute('role', treeAriaAttr.treeRole);
             this.setMultiSelect(this.allowMultiSelection);
-            const firstNode: Element = select('.' + LISTITEM, this.element);
-            if (firstNode) {
-                firstNode.setAttribute('tabindex', '0');
-                this.updateIdAttr(null, firstNode);
-            }
+            this.setNodeFocusable();
             if (this.allowTextWrap) {
                 this.updateWrap();
             }
@@ -2898,6 +2910,9 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
     }
 
     private animateHeight(args: AnimationOptions, start: number, end: number): void {
+        if (isNullOrUndefined(args.element.parentElement)) {
+            return;
+        }
         const remaining: number = (args.duration - args.timeStamp) / args.duration;
         const currentHeight: number = (end - start) * remaining + start;
         args.element.parentElement.style.height = currentHeight + 'px';
@@ -6084,9 +6099,11 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
                 this.updateWrap();
                 break;
             case 'checkedNodes':
-                if (this.showCheckBox) {
-                    this.checkedNodes = oldProp.checkedNodes;
-                    this.setCheckedNodes(newProp.checkedNodes);
+                if (JSON.stringify(oldProp.checkedNodes) !== JSON.stringify(newProp.checkedNodes)) {
+                    if (this.showCheckBox) {
+                        this.checkedNodes = oldProp.checkedNodes;
+                        this.setCheckedNodes(newProp.checkedNodes);
+                    }
                 }
                 break;
             case 'autoCheck':
@@ -6268,6 +6285,7 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
             }
             this.groupedData = this.getGroupedData(this.treeData, this.fields.parentID);
         }
+        this.setNodeFocusable();
         this.updateCheckedStateFromDS();
         if (this.showCheckBox && dropLi) {
             this.ensureParentCheckState(dropLi);
@@ -6665,6 +6683,14 @@ export class TreeView extends Component<HTMLElement> implements INotifyPropertyC
     public uncheckAll(nodes?: string[] | Element[]): void {
         if (this.showCheckBox) {
             this.doCheckBoxAction(nodes, false);
+        }
+    }
+
+    private setNodeFocusable(): void {
+        const firstNode: Element = select('.' + LISTITEM, this.element);
+        if (firstNode) {
+            firstNode.setAttribute('tabindex', '0');
+            this.updateIdAttr(null, firstNode);
         }
     }
 }

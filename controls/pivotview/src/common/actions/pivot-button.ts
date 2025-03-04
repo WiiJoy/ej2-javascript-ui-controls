@@ -974,7 +974,7 @@ export class PivotButton implements IAction {
                     Object.keys(this.parent.engineModule.fieldList[fieldName as string].members).length > 0) {
                     this.updateFilterEvents();
                 } else {
-                    pivotObj.getEngine('fetchFieldMembers', null, null, null, null, null, fieldName);
+                    this.parent.getEngine('fetchFieldMembers', null, null, null, null, null, fieldName);
                 }
             } else {
                 if (pivotObj.dataType === 'pivot' &&  !this.parent.engineModule.fieldList[fieldName as string].isMembersFilled) {
@@ -1332,7 +1332,7 @@ export class PivotButton implements IAction {
             for (const item of this.parent.pivotCommon.searchTreeItems) {
                 if (item.isSelected) {
                     if (this.parent.pivotCommon.isDateField) {
-                        filterItem.items.push(item.name as string);
+                        filterItem.items.push(this.parent.dataSourceSettings.mode === 'Server' ? item.actualText as string : item.name as string);
                     } else {
                         filterItem.items.push((item.htmlAttributes as { [key: string]: string })['data-memberId'] as string);
                     }

@@ -163,6 +163,30 @@ describe('831600: When using the mention with the Rich Text Editor, the backspac
     });
 });
 
+    describe('Bug 935992: Backspace Behavior in Vue RichTextEditor Removes Enclosing <div> Tags in Chrome and Edge (Not Firefox)', () => {
+        let rteObj: RichTextEditor;
+        let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: true, key: 'backspace', stopPropagation: () => { }, shiftKey: false, which: 8 };
+        it(' Pressing backspace in second line starting', (done: Function) => {
+            rteObj = renderRTE({
+                value: `<div><div><p>line 1</p><p class="focusNode">line 2</p></div></div>`,
+            });
+            let node: any = rteObj.inputElement.querySelector('.focusNode');
+            setCursorPoint(document, node, 0);
+            (rteObj as any).mouseUp({ target: rteObj.inputElement, isTrusted: true });
+            keyBoardEvent.keyCode = 8;
+            keyBoardEvent.code = 'Backspace';
+            (rteObj as any).keyDown(keyBoardEvent);
+            setTimeout(() => {
+                expect((rteObj as any).inputElement.innerHTML).toBe(`<div><div><p>line 1line 2</p></div></div>`);
+                done();
+            }, 100);
+        });
+        afterAll((done) => {
+            destroy(rteObj);
+            done();
+        });
+    });
+
 describe('832431: Entire line gets removed while pressing enter key after pressing backspace issue', () => {
     let rteObj: RichTextEditor;
     let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: true, key: 'backspace', stopPropagation: () => { }, shiftKey: false, which: 8 };
@@ -8725,6 +8749,72 @@ describe('924586: cursor placed in the Zero width space and typed, cursor is mis
     });
 });
   
+describe('872314: Image selection resize icon not removed while pressing the tab key.', ()=>{
+    let editor: RichTextEditor;
+    beforeAll(()=>{
+        editor = renderRTE({
+            enableTabKey: true,
+            value: `<p><img alt="Sky with sun" src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Overview.png" style="width: 50%" class="e-rte-image e-imginline"></p>`
+        })
+    });
+    afterAll(()=>{
+        destroy(editor);
+    });
+    it('Should cancel the resize action.',(done: DoneFn)=>{
+        editor.focusIn();
+        const image = editor.inputElement.querySelector('img');
+        const range: Range = new Range();
+        range.setStart(editor.inputElement.querySelector('p'), 0);
+        range.setEnd(editor.inputElement.querySelector('p'), 1);
+        editor.inputElement.ownerDocument.getSelection().removeAllRanges();
+        editor.inputElement.ownerDocument.getSelection().addRange(range);
+        clickImage(image);
+        setTimeout(() => {
+            const tabKeyDownEvent: KeyboardEvent = new KeyboardEvent('keydown', TAB_KEY_EVENT_INIT);
+            editor.inputElement.dispatchEvent(tabKeyDownEvent);
+            const tabKeyUpEvent: KeyboardEvent = new KeyboardEvent('keyup', TAB_KEY_EVENT_INIT);
+            editor.inputElement.dispatchEvent(tabKeyUpEvent);
+            setTimeout(() => {
+                expect(editor.inputElement.querySelectorAll('.e-img-resize').length).toBe(0);
+                done();
+            }, 100);
+        }, 100);
+    });
+});
+
+describe('872314: Image selection resize icon not removed while pressing the tab key.', ()=>{
+    let editor: RichTextEditor;
+    beforeAll(()=>{
+        editor = renderRTE({
+            enableTabKey: true,
+            value: `<p><video controls style="width: 30%;"><sourcesrc="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Ocean-Waves.mp4" type="video/mp4" /></video></p>`
+        })
+    });
+    afterAll(()=>{
+        destroy(editor);
+    });
+    it('Should cancel the video resize action.',(done: DoneFn)=>{
+        editor.focusIn();
+        const video = editor.inputElement.querySelector('video');
+        const range: Range = new Range();
+        range.setStart(editor.inputElement.querySelector('p'), 0);
+        range.setEnd(editor.inputElement.querySelector('p'), 1);
+        editor.inputElement.ownerDocument.getSelection().removeAllRanges();
+        editor.inputElement.ownerDocument.getSelection().addRange(range);
+        clickVideo(video);
+        setTimeout(() => {
+            const tabKeyDownEvent: KeyboardEvent = new KeyboardEvent('keydown', TAB_KEY_EVENT_INIT);
+            editor.inputElement.dispatchEvent(tabKeyDownEvent);
+            const tabKeyUpEvent: KeyboardEvent = new KeyboardEvent('keyup', TAB_KEY_EVENT_INIT);
+            editor.inputElement.dispatchEvent(tabKeyUpEvent);
+            setTimeout(() => {
+                expect(editor.inputElement.querySelectorAll('.e-vid-resize').length).toBe(0);
+                done();
+            }, 100);
+        }, 100);
+    });
+});  
+
 describe('923382: Apply background color to the table in iframe', () => {
     var rteObj: RichTextEditor;
         beforeEach(function (done: Function) {
@@ -8771,6 +8861,109 @@ describe('923382: Apply background color to the table in iframe', () => {
     });
 });
 
+describe('924321: Script Error Occurs When Closing Font Name Dropdown by Clicking Inside the RTE Editor.', () => {
+    let rteObj: RichTextEditor;
+    let elem: HTMLElement;
+    beforeAll( ()=> {
+        rteObj = renderRTE({
+            toolbarSettings: {
+                items: ['FontName', 'FontSize', 'FontColor', 'BackgroundColor']
+            },
+            iframeSettings: {
+                enable: true
+            },
+            value: "<p>Testing</p>"
+            
+        });
+        elem = rteObj.element;
+    });
+    afterAll(() => {
+        destroy(rteObj);
+    });
+    it('Open dropdown and click on the editor to close the drop down', (done: Function) => {
+        rteObj.focusIn();
+        ((elem.querySelectorAll(".e-toolbar-item")[0] as HTMLElement).querySelector('button') as HTMLButtonElement).click();
+        let target = rteObj.inputElement.querySelector("p")
+        let clickEvent: MouseEvent = document.createEvent("MouseEvents");
+        clickEvent.initEvent("mousedown", true, true);
+        target.dispatchEvent(clickEvent);
+        expect(((elem.querySelectorAll(".e-toolbar-item")[0] as HTMLElement).querySelector('button') as HTMLButtonElement).classList.contains('e-active')).toBe(false)
+        done();
+    });
+
+});
+
+describe('936378 - Content Repetition Issue While Pressing Backspace in List.', () => {
+    let rteObj: RichTextEditor;
+    let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: true, key: 'backspace', stopPropagation: () => { }, shiftKey: false, which: 8 };
+    beforeAll(() => {
+        rteObj = renderRTE({
+            value: `<ul><li><span data-teams="true"><p><a aria-label="Open in new window" id="menur27s" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/924349" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/924349">924349</a><span style="font-size: inherit;">: Background Color,
+    Dashed Styles, and Alternate Rows Styles Events Not Triggered in Events Sample.<strong> ( IN Review )</strong></span></p><p><span style="font-size: inherit;"><strong>PR: </strong></span><a aria-label="Open in new window" id="menur27u" href="https://github.com/essential-studio/ej2-richtexteditor-component/pull/3490" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://github.com/essential-studio/ej2-richtexteditor-component/pull/3490">https://github.com/essential-studio/ej2-richtexteditor-component/pull/3490</a></p></span><br></li><li><p><span data-teams="true"><a aria-label="Open in new window" id="menur282" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/916903" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/916903">916903</a> : After inserting a embedded code video, video
+    quick toolbar doesn't open after clicking the inserted video.<span style="font-size: inherit;"><strong>( IN Review )</strong></span></span><br></p></li><li style="font-weight: normal;"><p style="margin-left: 0px;"><a aria-label="Open in new window" id="menur27h" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/925494" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/925494">Bug 925494
+   </a>-The code view tooltip is not visible, preventing users from easily examining code snippets﻿﻿</p></li><li style="font-weight: normal;"><p style="margin-left: 0px;"><a aria-label="Open in new window" id="menur27j" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/926553" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/926553" style="text-decoration: none; color: rgb(46, 46, 241);">926553<span>&nbsp;</span></a>: Image Overlaps the List After Changing Alignment to Left (In review)<br></p></li><li style="font-weight: normal;"><p><a aria-label="Open in new window" id="menur2fs" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/923080" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/923080">923080</a>: Error on Empty fontFamily and fontSize Items
+    in Syncfusion Rich Text Editor</p><p>PR: <a aria-label="Open in new window" id="menur2fu" href="https://github.com/essential-studio/ej2-blazor-source/pull/19965" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://github.com/essential-studio/ej2-blazor-source/pull/19965">
+   https://github.com/essential-studio/ej2-blazor-source/pull/19965</a></p><p class="last_element"><a aria-label="Open in new window" id="menur2g0" href="https://dev.azure.com/EssentialStudio/Ej2-Web/_workitems/edit/923266" rel="noreferrer noopener" target="_blank" class="fui-Link ___1q1shib f2hkw1w f3rmtva f1ewtqcl fyind8e f1k6fduh f1w7gpdv fk6fouc fjoy568 figsok6 f1s184ao f1mk8lai fnbmjn9 f1o700av f13mvf36 f1cmlufx f9n3di6 f1ids18y f1tx3yz7 f1deo86v f1eh06m1 f1iescvh fhgqx19 f1olyrje f1p93eir f1nev41a f1h8hb77 f1lqvz6u f10aw75t fsle3fq f17ae5zn" title="https://dev.azure.com/essentialstudio/ej2-web/_workitems/edit/923266">923266</a>: Unable to Export to word/pdf in RTE component</p><br></li></ul>`,
+        });
+    });
+    it('should merge content when pressing backspace at the beginning of a list item', (done: Function) => {
+        let node: Element = (rteObj as any).inputElement.querySelector('.last_element');
+        setCursorPoint(document, (node.childNodes[0].childNodes[0] as Element), 0);
+        keyBoardEvent.keyCode = 8;
+        keyBoardEvent.code = 'Backspace';
+        let element: string = node.textContent;
+        let previousNode: Element = node.previousElementSibling;
+        (rteObj as any).keyDown(keyBoardEvent);
+        let previousNodeText: string = previousNode.textContent;
+        expect(previousNodeText.includes(element)).toBe(true);
+        rteObj.value = `<p><strong><em><span style="text-decoration: underline;">RichTextEditor</span></em></strong></p><p class="cursor-elem">Kanban</p>`;
+        rteObj.dataBind();
+        let startNode = rteObj.inputElement.querySelector('.cursor-elem');
+        setCursorPoint(document, (startNode.childNodes[0] as Element), 0);
+        element = startNode.textContent;
+        previousNode = startNode.previousElementSibling;
+        rteObj.keyDown(keyBoardEvent);
+        let elemTextContent = previousNode.textContent;
+        expect(elemTextContent.includes(element)).toBe(true);
+        done();
+    });
+    afterAll((done) => {
+        destroy(rteObj);
+        done();
+    });
+});
+
+describe('942128 - Backspace not working properly.', () => {
+    let rteObj: RichTextEditor;
+    let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: true, key: 'backspace', stopPropagation: () => { }, shiftKey: false, which: 8 };
+    beforeAll(() => {
+        rteObj = renderRTE({
+            value: `<p>This is  a paragraph content.</p><ul><li>This is a first list content</li></ul><p class='last_element'>This is a second list content.</p>`,
+        });
+    });
+    it('should merge content when pressing backspace key', (done: Function) => {
+        debugger
+        let node: Element = (rteObj as any).inputElement.querySelector('.last_element');
+        setCursorPoint(document, (node.childNodes[0] as Element), 0);
+        keyBoardEvent.keyCode = 8;
+        keyBoardEvent.code = 'Backspace';
+        (rteObj as any).keyDown(keyBoardEvent);
+        expect((rteObj as any).inputElement.querySelector("UL li").textContent.indexOf("This is a second list content.") > -1).toBe(true);
+        rteObj.value = `<p>This is  a paragraph content.</p><ul><li><p>This is a first list <em><span style="text-decoration: underline;"><span style="text-decoration: line-through;"><strong>content</strong></span></span></em></p></li></ul><p class='last_element'>This is a second list content.</p>`;
+        rteObj.dataBind();
+        let startNode = (rteObj as any).inputElement.querySelector('.last_element');
+        setCursorPoint(document, (startNode.childNodes[0] as Element), 0);
+        rteObj.keyDown(keyBoardEvent);
+        expect((rteObj as any).inputElement.querySelector("UL li p").textContent.indexOf("This is a second list content.") > -1).toBe(true);
+        expect((rteObj as any).inputElement.querySelector("UL li p").lastChild.textContent === 'This is a second list content.').toBe(true);
+        done();
+    });
+    afterAll((done) => {
+        destroy(rteObj);
+        done();
+    });
+});
+
 describe('927297: When the Backspace key is pressed at the beginning of a line, it incorrectly merges all the lines into one.', () => {
     let rteObj: RichTextEditor;
     let keyBoardEvent: any = { type: 'keydown', preventDefault: () => { }, ctrlKey: true, key: 'backspace', stopPropagation: () => { }, shiftKey: false, which: 8 };
@@ -8794,4 +8987,95 @@ describe('927297: When the Backspace key is pressed at the beginning of a line, 
     });
 });
 
+describe('938174: MAC: Cursor Not Positioned Properly After Clearing Editor Content Using Control + A and Delete', () => {
+    let rteObj: RichTextEditor;
+    let keyBoardEvent: any = { type: 'keyup', preventDefault: () => { }, ctrlKey: true, key: 'Delete', stopPropagation: () => { }, shiftKey: false, which: 46 };
+    beforeAll(() => {
+        rteObj = renderRTE({
+            value: `<p>RichText</p><p class="focusNode">Editor</p>`,
+        });
+    });
+    it('Checking the cursor at the BR tag when selecting all the content and deleting in the editor', (done: Function) => {
+        let node: any = (rteObj as any).inputElement;
+        let sel = new NodeSelection().setSelectionText(document, node.childNodes[0], node.childNodes[1], 0, 1);
+        keyBoardEvent.keyCode = 46;
+        keyBoardEvent.code = 'Delete';
+        rteObj.keyDown(keyBoardEvent);
+        (rteObj as any).keyUp(keyBoardEvent);
+        setTimeout(() => {
+            expect(window.getSelection().getRangeAt(0).startContainer.nodeName === 'BR').toBe(true);
+            expect(rteObj.inputElement.innerHTML).toBe('<p><br></p>');
+            done();
+        }, 100);
+    });
+    afterAll((done) => {
+        destroy(rteObj);
+        done();
+    });
+});
+
+describe('921865 - undo not tirggerd, after performing copy and pasting content from outlook', () => {
+    let rteObject: RichTextEditor;
+    let innerHTML: string = `<span style="color: rgb(51, 51, 51); font-family: Roboto, &quot;Segoe UI&quot;, GeezaPro, &quot;DejaVu Serif&quot;, &quot;sans-serif&quot;, -apple-system, BlinkMacSystemFont; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">The Rich Text Editor (RTE) control is an easy to render in client side. Customer easy to edit the contents and get the HTML content for the displayed content. A rich text editor control provides users with a toolbar that helps them to apply rich text formats to the text entered in the text area.</span>`;
+    let keyBoardEvent: any = {
+        preventDefault: () => { },
+        type: 'keydown',
+        stopPropagation: () => { },
+        ctrlKey: false,
+        shiftKey: false,
+        action: null,
+        which: 86,
+        key: '',
+        keyCode: 13
+    };
+    beforeEach(() => {
+        rteObject = renderRTE({
+            pasteCleanupSettings: {
+                prompt: false
+            },
+            value: '',
+            toolbarSettings: {
+                items: ['Undo', 'Redo']
+            }
+        });
+    });
+    afterEach((done: DoneFn) => {
+        destroy(rteObject);
+        done();
+    });
+    it('Pasting content to test if Undo is enabled on the toolbar.', (done: Function) => {
+        rteObject.dataBind();
+        keyBoardEvent.clipboardData = {
+            getData: () => {
+                return innerHTML;
+            },
+            items: []
+        };
+        setCursorPoint(document, (rteObject as any).inputElement.firstElementChild, 0);
+        (rteObject as any).keyDown(keyBoardEvent);
+        rteObject.onPaste(keyBoardEvent);
+        setTimeout(function () {
+            let element = rteObject.element.querySelectorAll("#" + rteObject.getID() + "_toolbar.e-toolbar .e-toolbar-item");
+            expect(element[0].classList.contains("e-overlay")).toBe(false);
+            expect(element[1].classList.contains("e-overlay")).toBe(true);
+            done();
+        }, 100);
+    });
+    it('Save the data during the mouseup event to ensure that the Undo action is enabled after pasting', (done: Function) => {
+        rteObject.dataBind();
+        keyBoardEvent.clipboardData = {
+            getData: function () {
+                return innerHTML;
+            },
+            items: []
+        };
+        setCursorPoint(document, rteObject.inputElement.firstElementChild, 0);
+        (rteObject as any).mouseUp({ target: rteObject.inputElement });
+        setTimeout(function () {
+            let stack = rteObject.formatter.editorManager.undoRedoManager.undoRedoStack.length;
+            expect(stack === 1).toBe(true);
+            done();
+        }, 100);
+    });
+});
 });

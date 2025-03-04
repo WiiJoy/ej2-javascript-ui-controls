@@ -2,6 +2,56 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### GanttChart
+
+#### Bug fixes
+
+- `#I685559` - `updateRecordByID` method does not work when a predecessor dependency value is passed with offset days issue has been resolved.
+- `#I689267` - Console error occurred at initial load when end date not mapped in `taskFields` issue has been resolved.
+- Task not rendered at given time in datasource when `dayWorkingTime` is enabled issue has been resolved.
+- `#I691907` - Incorrect values are saved during edit action of work field with `FixedDuration` and `FixedWork` task types issue has been resolved.
+- `#I690721` - Console error occurs when user map level property in datasource issue has been resolved.
+
+## 28.2.6 (2025-02-18)
+
+### GanttChart
+
+#### Bug fixes
+
+- `#I684077` - The console error that occurred while updating a record with start and end dates as strings using the `updateRecordByID` method has been resolved.
+- `#I668559` - Event marker and weekends are rendering incorrect place while using `warsaw` timezone issue has been fixed.
+- `#I683525` - Resource was not included the second time when using edit in column issue has been fixed.
+
+## 28.2.5 (2025-02-11)
+
+### GanttChart
+
+#### Bug fixes
+
+- `#I678529` - When row drag and drop is used, the issue where modified records were not updating properly in the actionComplete event has been fixed.
+- `#I683525` - Resolved a script error that occurred during cell editing of the Resource field when the resource collection was modified through column editing.
+
+## 28.2.4 (2025-02-04)
+
+### GanttChart
+
+#### Bug fixes
+
+- `#I678529` -  Fixed issues where the Work column value was not updating correctly when one resource unit was set to 0 and another to 100. Additionally, resolved an issue in Fixed Duration mapping, where the Work value did not update to 0 when the resource unit was set to 0.
+- `#I682615`,`#I684467` - Duration updated incorrectly while updating record via method issue has been fixed.
+- `#I674922` - Taskbar Drag Issues When Overlapping on the Same Date issue has been fixed.
+
+## 28.2.3 (2025-01-29)
+
+### GanttChart
+
+#### Bug fixes
+
+- `#I679476` - Delay occurs when sample is loaded with the critical path issue has been fixed.
+- `#I679518` - Invalid dependency lines are displayed when edit settings are not enabled issue has been fixed.
+
 ## 28.1.41 (2025-01-21)
 
 ### GanttChart

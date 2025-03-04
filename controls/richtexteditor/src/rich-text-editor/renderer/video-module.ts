@@ -27,7 +27,10 @@ export class Video {
     private contentModule: IRenderer;
     private rendererFactory: RendererFactory;
     private quickToolObj: IRenderer;
-    private vidResizeDiv: HTMLElement;
+    /**
+     * @hidden
+     */
+    public vidResizeDiv: HTMLElement;
     private vidDupPos: { [key: string]: number | string };
     private resizeBtnStat: { [key: string]: boolean };
     private videoEle: HTMLVideoElement | HTMLIFrameElement;
@@ -343,6 +346,9 @@ export class Video {
             return;
         }
         const target: HTMLElement = ele ? ele as HTMLElement : !this.isEmbedVidElem(e.target as HTMLElement) ? e.target as HTMLElement : (e.target as HTMLElement).querySelector('iframe');
+        if (isNullOrUndefined(target as HTMLElement)){
+            return;
+        }
         this.prevSelectedVidEle = this.videoEle;
         if ((target as HTMLElement).tagName === 'VIDEO' || (target as HTMLElement).tagName === 'IFRAME') {
             this.parent.preventDefaultResize(e as MouseEvent);
@@ -441,6 +447,9 @@ export class Video {
         this.vidResizePos(e, this.vidResizeDiv);
         this.resizeVidDupPos(e);
         this.contentModule.getEditPanel().appendChild(this.vidResizeDiv);
+        if (this.parent.element.style.height === 'auto') {
+            this.vidResizePos(e, this.vidResizeDiv);
+        }
     }
 
     private getPointX(e: PointerEvent | TouchEvent): number {
@@ -631,7 +640,7 @@ export class Video {
 
     }
 
-    private cancelResizeAction(): void {
+    public cancelResizeAction(): void {
         this.isResizeBind = true;
         EventHandler.remove(this.contentModule.getDocument(), Browser.touchMoveEvent, this.resizing);
         EventHandler.remove(this.contentModule.getDocument(), Browser.touchEndEvent, this.resizeEnd);
@@ -711,12 +720,12 @@ export class Video {
             if (!originalEvent.ctrlKey && originalEvent.key && (originalEvent.key.length === 1 || originalEvent.action === 'enter') &&
                 ((!isNOU(selectParentEle[0]) && (selectParentEle[0] as HTMLElement).tagName === 'VIDEO' || this.isEmbedVidElem(selectParentEle[0] as HTMLElement))) &&
                 (selectParentEle[0] as HTMLElement).parentElement) {
-                const prev: Node = ((selectParentEle[0] as HTMLElement).parentElement as HTMLElement).childNodes[0];
+                const prev: Node = ((selectParentEle[0] as HTMLElement).parentElement as HTMLElement);
                 if (this.contentModule.getEditPanel().querySelector('.e-vid-resize')) {
                     this.removeResizeEle();
                 }
                 this.parent.formatter.editorManager.nodeSelection.setSelectionText(
-                    this.contentModule.getDocument(), prev, prev, prev.textContent.length, prev.textContent.length);
+                    this.contentModule.getDocument(), prev, prev, prev.textContent.trim().length, prev.textContent.trim().length);
                 removeClass([selectParentEle[0] as HTMLElement], classes.CLS_VID_FOCUS);
                 this.quickToolObj.videoQTBar.hidePopup();
             }
@@ -1377,6 +1386,9 @@ export class Video {
                 filesData = e.filesData;
                 this.parent.trigger(events.fileSelected, selectArgs, (selectArgs: SelectedEventArgs) => {
                     if (!selectArgs.cancel) {
+                        if (isNOU(selectArgs.filesData[0])) {
+                            return;
+                        }
                         this.checkExtension(selectArgs.filesData[0]); fileName = selectArgs.filesData[0].name;
                         if (this.parent.editorMode === 'HTML' && isNullOrUndefined(this.parent.insertVideoSettings.path)) {
                             const reader: FileReader = new FileReader();

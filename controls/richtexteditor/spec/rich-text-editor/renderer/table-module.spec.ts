@@ -1001,12 +1001,6 @@ describe('Table Module', () => {
             (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
             (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
             expect(table.querySelectorAll('td')[10] === selObj.getRange(rteObj.contentModule.getDocument()).startContainer).toBe(true);
-            keyboardEventArgs.keyCode = 37;
-            (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
-            expect(table.querySelectorAll('td')[9] === selObj.getRange(rteObj.contentModule.getDocument()).startContainer).toBe(true);
-            keyboardEventArgs.keyCode = 39;
-            (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
-            expect(table.querySelectorAll('td')[10] === selObj.getRange(rteObj.contentModule.getDocument()).startContainer).toBe(true);
             keyboardEventArgs.keyCode = 38;
             (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
             expect(table.querySelectorAll('td')[7] === selObj.getRange(rteObj.contentModule.getDocument()).startContainer).toBe(true);
@@ -1151,6 +1145,68 @@ describe('Table Module', () => {
             (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
             expect(table.querySelector('td').nextSibling.nodeName === '#text').toBe(false);
             expect(table.querySelector('tr').nextSibling.nodeName === '#text').toBe(false);
+        });
+    });
+
+    describe('936419 - Unwanted P Tag Created When Navigating Table Cell by Pressing Tab Key on Mac', () => {
+        let rteEle: HTMLElement;
+        let rteObj: RichTextEditor;
+        let keyboardEventArgs: any;
+
+        beforeAll(() => {
+          rteObj = renderRTE({
+            height: 400,
+            toolbarSettings: {
+              items: ['Bold', 'CreateTable']
+            },
+            value: `<table border="1">
+              <tr>
+                <td>Cell 1,1</td>
+                <td><span>engineer</span><br></td>
+                <td>Cell 1,3</td>
+              </tr>
+              <tr>
+                <td>Cell 2,1</td>
+                <td>Cell 2,2</td>
+                <td>Cell 2,3</td>
+              </tr>
+            </table>`
+          });
+          rteEle = rteObj.element;
+        });
+
+        afterAll(() => {
+          destroy(rteObj);
+        });
+
+        it('Should not create extra p tag when pressing tab key twice', () => {
+          const table: HTMLElement = rteObj.contentModule.getEditPanel().querySelector('table') as HTMLElement;
+          const cells = table.querySelectorAll('td');
+          const firstCell = cells[0];
+          const secondCell = cells[1];
+          const thirdCell = cells[2];
+          // Set selection to the start of the first cell
+          let selObj: NodeSelection = new NodeSelection();
+          selObj.setSelectionText(rteObj.contentModule.getDocument(), firstCell, firstCell, 0, 0);
+          // Simulate first tab key press
+          keyboardEventArgs = {
+            preventDefault: function () { },
+            keyCode: 9,
+            shiftKey: false
+          };
+          (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
+          // Check if the selection moved to the second cell
+          let selection = rteObj.contentModule.getDocument().getSelection();
+          expect(selection.anchorNode).toBe(secondCell);
+          expect(selection.anchorOffset).toBe(0);
+          // Simulate second tab key press
+          (<any>rteObj).tableModule.keyDown({ args: keyboardEventArgs });
+          // Check if the selection moved to the third cell
+          selection = rteObj.contentModule.getDocument().getSelection();
+          expect(selection.anchorNode).toBe(thirdCell);
+          expect(selection.anchorOffset).toBe(0);
+          // Check if no extra p tag was created in the second cell
+          expect(secondCell.innerHTML).toBe('<span>engineer</span><br>');
         });
     });
 
@@ -3575,7 +3631,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
                         <td style="width: 20%;"><ol><li><br></li></ol></td>
                     </tr>
                 </tbody>
-            </table><ol><li><b>Test1</b></li><li><b>Test2</b></li></ol>`);
+            </table><ol><li style="font-weight: bold;"><b>Test1</b></li><li style="font-weight: bold;"><b>Test2</b></li></ol>`);
                 done();
             }, 500);
         });
@@ -3593,7 +3649,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
                         <td style="width: 20%;"><ul><li><br></li></ul></td>
                     </tr>
                 </tbody>
-            </table><ul><li><b>Test1</b></li><li><b>Test2</b></li></ul>`);
+            </table><ul><li style="font-weight: bold;"><b>Test1</b></li><li style="font-weight: bold;"><b>Test2</b></li></ul>`);
                 done();
             }, 500);
         });
@@ -6891,7 +6947,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
     describe("908652 - Table Width Shrinks When Pasting a Table from Outlook and Adding a Column", () => {
         let rteObj: RichTextEditor;
         let rteEle: HTMLElement;
-        beforeEach(() => {
+        beforeAll(() => {
             rteObj = renderRTE({
                 quickToolbarSettings: {
                     table: ['TableColumns']
@@ -7014,7 +7070,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
             });
             rteEle = rteObj.element;
         });
-        afterEach(() => {
+        afterAll(() => {
             destroy(rteObj);
         });
         it('Table Width Shrinks When Pasting a Table from Outlook and Adding a Column', (done: Function) => {
@@ -7032,14 +7088,14 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
                 (document.querySelectorAll('.e-rte-dropdown-items.e-dropdown-popup ul .e-item')[1] as HTMLElement).click();
                 expect(table.style.width != '').toBe(true);
                 done();
-            }, 400);
+            }, 100);
         });
     });
 
     describe("904465 - Cell is not properly visible and cursor is not at correct position in cell after merging the all the cells in single row", () => {
         let rteObj: RichTextEditor;
         let rteEle: HTMLElement;
-        beforeEach(() => {
+        beforeAll(() => {
             rteObj = renderRTE({
                 quickToolbarSettings: {
                     table: ['TableCell']
@@ -7048,7 +7104,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
             });
             rteEle = rteObj.element;
         });
-        afterEach(() => {
+        afterAll(() => {
             destroy(rteObj);
         });
         it('Merge two columns in single row', (done: Function) => {
@@ -7069,7 +7125,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
                 expect((rteObj as any).inputElement.querySelector('table td').offsetHeight).toBe(22);
                 expect(height + 2 ).toEqual((rteObj as any).inputElement.querySelector('table td').offsetHeight);
                 done();
-            }, 400);
+            }, 100);
         });
     });
 
@@ -7168,20 +7224,17 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
     });
     describe('916978: After resizing the image with a percentage in the toolbar, the image does not display according to the adjusted height and weight inside the table', () => {
         let editor: RichTextEditor;
-        beforeEach((done: DoneFn) => {
+        beforeAll(() => {
             editor = renderRTE({toolbarSettings: {
                 items: ['CreateTable'],
             },
             value: `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr style="height: 33.7662%;"><td class="e-cell-select" style="width: 33.3333%;"><img src="https://cdn.syncfusion.com/ej2/richtexteditor-resources/RTE-Overview.png" class="e-rte-image e-imginline" alt="RTE-Overview" width="342" height="193" style="min-width: 0px; max-width: 342px; min-height: 0px; width: 30%; height: 50%;"> </td><td style="width: 33.3333%;" class=""><br></td><td style="width: 33.3333%;"><br></td></tr><tr style="height: 33.7662%;"><td style="width: 33.3333%;" class=""><br></td><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td></tr><tr style="height: 33.7662%;"><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td></tr></tbody></table><p><br></p>`
-        }
-        );
-            done();
+            });
         });
-        afterEach((done: DoneFn) => {
+        afterAll(() => {
             destroy(editor);
-            done();
         });
-        it ('select the table to check the image when height is setted to percentage', () => {
+        it ('select the table to check the image when height is setted to percentage', (done: DoneFn) => {
             editor.focusIn();
             const nextElement = document.querySelector('td').nextElementSibling;
             if (nextElement) {
@@ -7192,7 +7245,75 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
                 });
                 nextElement.dispatchEvent(clickEvent);
             }
-            expect(document.querySelector('td').style.height === 'inherit').toBe(true);
+            setTimeout(() => {
+                expect(document.querySelector('td').style.height === 'inherit').toBe(true);
+                done();
+            }, 100);
+        });
+    });
+
+    describe('937247: Keyboard shortcut for creating tables in the Markdown editor is not functioning', () => {
+        let rteEle: HTMLElement;
+        let rteObj: RichTextEditor;
+        beforeAll(() => {
+            rteObj = renderRTE({
+                placeholder: 'Insert table here',
+                toolbarSettings: {
+                    items: ['Bold', 'CreateTable']
+                },
+                editorMode: 'Markdown'
+            });
+            rteEle = rteObj.element;
+        });
+        afterAll(() => {
+            destroy(rteObj);
+        });
+        it('should insert a table using Ctrl+Shift+E shortcut', (done: DoneFn) => {
+            rteObj.focusIn();
+            const keyEvent = new KeyboardEvent("keydown", {
+                key: "E",
+                code: "KeyE",
+                which: 69,
+                keyCode: 69,
+                ctrlKey: true,
+                shiftKey: true,
+                bubbles: true,
+                cancelable: true
+            } as KeyboardEventInit);
+            rteObj.inputElement.dispatchEvent(keyEvent);
+            setTimeout(() => {
+                const panel = rteObj.contentModule.getEditPanel() as HTMLInputElement;
+                const markdownValue = panel.value;
+                expect(markdownValue).toBe('|Heading 1|Heading 2|\n|---------|---------|\n|Col A1|Col A2|\n|Col B1|Col B2|\n\n');
+                done();
+            }, 100);
+        });
+    });
+
+    describe('935060 - Cursor Does Not Navigate to the Previous Line in a Table Cell When Pressing the Left Arrow Key.', () => {
+        let editor: RichTextEditor;
+        beforeEach((done: DoneFn) => {
+            editor = renderRTE({
+                toolbarSettings: {
+                    items: ['CreateTable'],
+                },
+                value: `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr><td class="" style="width: 50%;">Rich Text Editor 1</td><td style="width: 50%;" class="">Rich Text Editor 1</td></tr><tr><td style="width: 50%;" class="">Rich Text Editor 1</td><td style="width: 50%;" class="e-cell-select">Rich Text Editor 1<p class="tdElement"><br></p></td></tr></tbody></table><p><br></p>`
+            }
+            );
+            done();
+        });
+        afterEach((done: DoneFn) => {
+            destroy(editor);
+            done();
+        });
+        it('Place the cursor at the end of the <td> element and press the left arrow key.', (done) => {
+            editor.focusIn();
+            var tbElement = editor.contentModule.getEditPanel().querySelector(".tdElement")
+            setCursorPoint(tbElement, 0);
+            var keyBoardEvent = { type: 'keydown', preventDefault: function () { }, key: 'ArrowLeft', keyCode: 37, stopPropagation: function () { }, shiftKey: false, which: 37 };
+            (editor as any).keyDown(keyBoardEvent);
+            expect(tbElement.parentElement.contains(window.getSelection().getRangeAt(0).startContainer)).toBe(true);
+            done();
         });
     });
 
@@ -7201,7 +7322,7 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
         let controlId: string;
         let rteEle: HTMLElement;
         let div: HTMLElement;
-        beforeEach(function () {
+        beforeAll(function () {
             rteObj = renderRTE({
                 toolbarSettings: {
                     items: ['Bold', 'CreateTable', '|', 'Formats', 'Alignments', 'OrderedList',
@@ -7219,9 +7340,8 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
             rteEle = rteObj.element;
             controlId = rteEle.id;
         });
-        afterEach(function (done: DoneFn) {
+        afterAll(function () {
             destroy(rteObj);
-            done();
         });
         it('Alternate rows', function (done) {
             rteObj.focusIn()
@@ -7237,13 +7357,82 @@ the tool bar support, it�s also customiza</p><table class="e-rte-table" style=
             setCursorPoint(tbElement, 0);
             (rteObj as any).mouseDownHandler(eventsArg);
             (rteObj as any).mouseUp(eventsArg);
-            div = document.querySelector('#' + controlId + '_quick_TableRows-popup');
-            (document.querySelectorAll(".e-rte-quick-toolbar .e-toolbar-items .e-toolbar-item")[8].querySelector(".e-btn-icon.e-caret") as any).click();
-            let tar: HTMLElement = rteObj.contentModule.getEditPanel().querySelector('table') as HTMLElement;
-            let secondRow: HTMLElement = tar.querySelectorAll('tr')[1] as HTMLElement;
-            expect(window.getComputedStyle(secondRow).backgroundColor).toBe("rgb(245, 245, 245)");
-            detach(div);
+            setTimeout(() => {
+                div = document.querySelector('#' + controlId + '_quick_TableRows-popup');
+                (document.querySelectorAll(".e-rte-quick-toolbar .e-toolbar-items .e-toolbar-item")[8].querySelector(".e-btn-icon.e-caret") as any).click();
+                let tar: HTMLElement = rteObj.contentModule.getEditPanel().querySelector('table') as HTMLElement;
+                let secondRow: HTMLElement = tar.querySelectorAll('tr')[1] as HTMLElement;
+                expect(window.getComputedStyle(secondRow).backgroundColor).toBe("rgb(245, 245, 245)");
+                detach(div);
+                done();
+            }, 100);
+        });
+    });
+
+    describe('936577 - Cursor Moves to Last Cell Instead of Staying in First Cell When Pressing Shift + Tab in Table 1st cell', () => {
+        let editor: RichTextEditor;
+        beforeEach((done: DoneFn) => {
+            editor = renderRTE({
+                toolbarSettings: {
+                    items: ['CreateTable'],
+                },
+                value: `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><thead><tr><th><br></th><th><br></th><th><br></th></tr></thead><tbody><tr><td class="" style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td></tr><tr><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td></tr><tr><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td><td style="width: 33.3333%;"><br></td></tr></tbody></table><p><br></p>`
+            }
+            );
             done();
+        });
+        afterEach((done: DoneFn) => {
+            destroy(editor);
+            done();
+        });
+        it('Should keep the cursor in the first cell of the table header when Shift+Tab is pressed', (done) => {
+            editor.focusIn();
+            var tbElement = editor.contentModule.getEditPanel().querySelectorAll("table th")[0];
+            setCursorPoint(tbElement, 0);
+            var keyBoardEvent = { type: 'keydown', preventDefault: function () { }, key: 'Tab', keyCode: 9, stopPropagation: function () { }, shiftKey: true, which: 9 };
+            (editor as any).keyDown(keyBoardEvent);
+            expect(tbElement === window.getSelection().getRangeAt(0).startContainer).toBe(true);
+            editor.value = `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr><td class="" style="width: 50%;"><table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr><td class="" style="width: 50%;"><br></td><td style="width: 50%;"><br></td></tr><tr><td style="width: 50%;"><br></td><td style="width: 50%;"><br></td></tr></tbody></table><p><br></p></td><td style="width: 50%;" class="tdElement"><br></td></tr><tr><td style="width: 50%;"><br></td><td style="width: 50%;"><br></td></tr></tbody></table><p><br></p>`;
+            editor.dataBind();
+            tbElement = editor.contentModule.getEditPanel().querySelector(".tdElement");
+            setCursorPoint(tbElement, 0);
+            (editor as any).keyDown(keyBoardEvent);
+            expect(window.getSelection().getRangeAt(0).startContainer === editor.contentModule.getEditPanel().querySelectorAll("table tr td table td")[0]).toBe(true);
+            done();
+        });
+    });
+
+    describe('936848: Add Table Popup Gets Hidden Under the Lower Rich Text Editor’s Toolbar', () => {
+        let rteObjOne : RichTextEditor;
+        let rteObjTwo : RichTextEditor;
+        beforeAll(() => {
+            rteObjOne = renderRTE({
+                toolbarSettings: {
+                    items: ['CreateTable'],
+                },
+                value: `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr><td class="" style="width: 50%;">Rich Text Editor 1</td><td style="width: 50%;" class="">Rich Text Editor 1</td></tr><tr><td style="width: 50%;" class="">Rich Text Editor 1</td><td style="width: 50%;" class="e-cell-select">Rich Text Editor 1<p class="tdElement"><br></p></td></tr></tbody></table><p><br></p>`
+            }
+            );
+            rteObjTwo = renderRTE({
+                toolbarSettings: {
+                    items: ['CreateTable'],
+                },
+                value: `<table class="e-rte-table" style="width: 100%; min-width: 0px;"><tbody><tr><td class="" style="width: 50%;">Rich Text Editor 1</td><td style="width: 50%;" class="">Rich Text Editor 1</td></tr><tr><td style="width: 50%;" class="">Rich Text Editor 1</td><td style="width: 50%;" class="e-cell-select">Rich Text Editor 1<p class="tdElement"><br></p></td></tr></tbody></table><p><br></p>`
+            }
+            );
+        });
+        afterAll(() => {
+            destroy(rteObjOne);
+            destroy(rteObjTwo);
+        });
+        it("936848: Add Table Popup Gets Hidden Under the Lower Rich Text Editor’s Toolbar", () => {
+            expect(rteObjOne.element.querySelectorAll('.e-rte-content').length).toBe(1);
+            expect(rteObjTwo.element.querySelectorAll('.e-rte-content').length).toBe(1);
+            (<HTMLElement>rteObjOne.element.querySelectorAll(".e-toolbar-item")[0] as HTMLElement).click();
+            expect(rteObjOne.element.querySelectorAll('.e-popup').length === 1).toBe(true);
+            expect((<HTMLElement>rteObjOne.element.querySelector(".e-toolbar-wrapper") as HTMLElement).style.zIndex === '11').toBe(true);
+            (<HTMLElement>rteObjOne.element.querySelectorAll(".e-toolbar-item")[0] as HTMLElement).click();
+            expect((<HTMLElement>rteObjOne.element.querySelector(".e-toolbar-wrapper") as HTMLElement).style.zIndex === '').toBe(true);
         });
     });
 });

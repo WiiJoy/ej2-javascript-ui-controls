@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## 28.2.6 (2025-02-18)
+
+### Popup
+
+#### Bug Fixes
+
+- `#I688364` - Fixed an issue with the positioning issue of the Multi select component popup while enabling the RTL mode.
+
+## 28.1.39 (2024-01-14)
+
+### Dialog
+
+#### Bug Fixes
+
+- `#I674340` - Fixed an issue where the Dialog primary button click event was triggered even when the button was disabled.
+
 ## 28.1.38 (2025-01-07)
 
 ### Tooltip

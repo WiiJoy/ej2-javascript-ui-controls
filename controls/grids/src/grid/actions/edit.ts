@@ -238,7 +238,7 @@ export class Edit implements IAction {
         this.parent.element.classList.remove('e-editing');
         this.editModule.closeEdit();
         this.refreshToolbar();
-        this.parent.notify(events.closeEdit, {});
+        this.parent.notify(events.closeEdit, { requestType: 'cancel' });
         if (this.parent.editSettings.showAddNewRow) {
             this.destroyToolTip();
         }
@@ -544,8 +544,8 @@ export class Edit implements IAction {
             this.parent.pagerModule.isForceCancel = false;
         }
         this.parent.focusModule.clearIndicator();
-        this.parent.focusModule.restoreFocus();
         this.dialogObj.hide();
+        this.parent.focusModule.restoreFocus({ requestType: 'cancel' });
         this.parent.notify('cancelcnfrmDlg', {});
     }
 
@@ -622,7 +622,7 @@ export class Edit implements IAction {
             this.parent.isEdit = this.parent.editSettings.showAddNewRow ? true : false;
         }
         if (e.requestType === 'batchsave') {
-            this.parent.focusModule.restoreFocus();
+            this.parent.focusModule.restoreFocus({ requestType: e.requestType });
         }
         this.refreshToolbar();
     }
@@ -784,7 +784,19 @@ export class Edit implements IAction {
                 this.parent.renderTemplates();
             }
         }
-        cols = cols ? cols : this.parent.getCurrentVisibleColumns(this.parent.enableColumnVirtualization) as Column[];
+        if (this.parent.editSettings.mode === 'Dialog' && this.parent.allowGrouping && this.parent.groupSettings.columns.length) {
+            cols = [];
+            const allColumns: Column[] = this.parent.getColumns();
+            for (let i: number = 0; i < allColumns.length; i++) {
+                const column: Column = allColumns[parseInt(i.toString(), 10)];
+                if (column.visible || (this.parent.groupSettings.columns.indexOf(column.field) > -1)) {
+                    cols.push(column);
+                }
+            }
+        }
+        else {
+            cols = cols ? cols : this.parent.getCurrentVisibleColumns(this.parent.enableColumnVirtualization) as Column[];
+        }
         if (cols.some((column: Column) => !isNullOrUndefined(column.editTemplate))) {
             this.parent.destroyTemplate(['editTemplate']);
             if (this.parent.isReact) {
@@ -804,10 +816,11 @@ export class Edit implements IAction {
         }
         const elements: HTMLInputElement[] = [].slice.call((<HTMLFormElement>this.formObj.element).elements);
         for (let i: number = 0; i < elements.length; i++) {
-            if (elements[parseInt(i.toString(), 10)].hasAttribute('name')) {
-                const instanceElement: HTMLInputElement = elements[parseInt(i.toString(), 10)].parentElement.classList.contains('e-ddl') ?
-                    elements[parseInt(i.toString(), 10)].parentElement.querySelector('input') : elements[parseInt(i.toString(), 10)];
-                if ((<EJ2Intance>(instanceElement as Element)).ej2_instances &&
+            const element: HTMLInputElement = elements[parseInt(i.toString(), 10)];
+            if (element.hasAttribute('name')) {
+                const instanceElement: HTMLInputElement = isNullOrUndefined(element.parentElement) ? null :  element.parentElement.classList.contains('e-ddl') ?
+                    element.parentElement.querySelector('input') : element;
+                if (<EJ2Intance>(instanceElement as Element) && (<EJ2Intance>(instanceElement as Element)).ej2_instances &&
                     (<Object[]>(<EJ2Intance>(instanceElement as Element)).ej2_instances).length &&
                     !(<EJ2Intance>(instanceElement as Element)).ej2_instances[0].isDestroyed) {
                     (<EJ2Intance>(instanceElement as Element)).ej2_instances[0].destroy();
@@ -1155,7 +1168,7 @@ export class Edit implements IAction {
         let rows: Element[] = [].slice.call(this.parent.getContent().getElementsByClassName(literals.row));
         if (this.parent.editSettings.mode === 'Batch') {
             rows = [].slice.call(this.parent.getContent().querySelectorAll('.e-row:not(.e-hiddenrow)'));
-            if (viewPortRowCount >= 1 && rows.length >= viewPortRowCount
+            if (viewPortRowCount > 1 && rows.length > viewPortRowCount
                 && rows[rows.length - 1].getAttribute(literals.dataRowIndex) === row.getAttribute(literals.dataRowIndex)) {
                 isBatchModeLastRow = true;
             }
@@ -1174,7 +1187,7 @@ export class Edit implements IAction {
                     isFHdrLastRow = true;
                 }
             }
-            if (isFHdrLastRow || (viewPortRowCount >= 1 && rows.length >= viewPortRowCount
+            if (isFHdrLastRow || (viewPortRowCount > 1 && rows.length > viewPortRowCount
                 && ((this.parent.editSettings.newRowPosition === 'Bottom' && (this.editModule.args
                     && this.editModule.args.requestType === 'add')) || (td.classList.contains('e-lastrowcell')
                         && !row.classList.contains(literals.addedRow)))) || isBatchModeLastRow) {

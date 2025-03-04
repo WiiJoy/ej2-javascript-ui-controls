@@ -2,7 +2,43 @@
 
 ## [Unreleased]
 
-## 28.1.41 (2025-01-21)
+## 28.2.7 (2025-02-25)
+
+### PDF Parser
+
+#### Bug Fixes
+
+- Resolved an issue with preserving the line measurement annotation in browsers when updating the measure dictionary as a custom entry.
+- Resolved an issue where multiple text box fields were not preserving flattening when applying a globally initialized font.
+
+## 28.2.5 (2025-02-11)
+
+### PDF Parser
+
+#### Bug Fixes
+
+- Resolved an issue with preserving the position of the existing signature field when the flatten option is set to true.
+- Resolved an issue with preserving a stamp annotation when flattened with a rotation of 270 degrees.
+
+## 28.2.4 (2025-02-04)
+
+### PDF Parser
+
+#### Bug Fixes
+
+- Resolved an exception encountered while adding a textbox field when the insert spaces property is enabled.
+- Resolved an issue with form field value position changed after saving the document.
+
+## 28.2.3 (2025-01-29)
+
+### PDF Parser
+
+#### Bug Fixes
+
+- Resolved an issue with preserving the custom stamp while exporting the stamp annotation template from a PDF document.
+- Resolved an issue with font details not being parsed from loaded PDF combo box fields.
+
+## 28.1.39 (2024-01-14)
 
 ### PDF Parser
 

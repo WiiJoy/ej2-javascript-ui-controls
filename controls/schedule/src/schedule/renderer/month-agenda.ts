@@ -45,7 +45,7 @@ export class MonthAgenda extends Month {
     }
 
     public updateSelectedCellClass(data: TdData): void {
-        if (util.resetTime(data.date).getTime() === util.resetTime(this.monthAgendaDate).getTime()) {
+        if (util.resetTime(data.date).getTime() === util.resetTime(new Date('' + this.parent.selectedDate)).getTime()) {
             data.className.push(cls.SELECTED_CELL_CLASS);
         }
     }
@@ -108,6 +108,7 @@ export class MonthAgenda extends Month {
         this.onEventRender(filterData, event.startTime);
         this.parent.notify(events.eventsLoaded, {});
         this.monthAgendaDate = new Date('' + event.startTime);
+        this.parent.setProperties({ selectedDate: this.monthAgendaDate }, true);
     }
 
     private onEventRender(events: Record<string, any>[], date?: Date): void {

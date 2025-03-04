@@ -423,7 +423,7 @@ export class SfdtReader {
                     if (isFieldDisplayText) {
                         text = text + '<span contenteditable="false" class="e-mention-chip">' + textValue + '</span>';
                         isFieldDisplayText = false;
-                    } else {
+                    } else if (textValue) {
                         text = text + textValue.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     }
                 }
@@ -544,20 +544,23 @@ export class SfdtReader {
                     if (isNullOrUndefined(linkStyle)) {
                         //Construct the CharacterStyle string
                         const charaStyle: any = {};
-                        charaStyle.characterFormat = style[characterFormatProperty[this.keywordIndex]];
-                        charaStyle.name = style[nameProperty[this.keywordIndex]] + ' Char';
-                        charaStyle.type = 'Character';
+                        charaStyle[characterFormatProperty[this.keywordIndex]] = style[characterFormatProperty[this.keywordIndex]];
+                        charaStyle[nameProperty[this.keywordIndex]] = style[nameProperty[this.keywordIndex]] + ' Char';
+                        charaStyle[typeProperty[this.keywordIndex]] = 'Character';
                         //TODO: Implement basedOn
-                        charaStyle.basedOn = style[basedOnProperty[this.keywordIndex]] === 'Normal' ? 'Default Paragraph Font' : (style[basedOnProperty[this.keywordIndex]] + ' Char');
+                        charaStyle[basedOnProperty[this.keywordIndex]] = style[basedOnProperty[this.keywordIndex]] === 'Normal' ? 'Default Paragraph Font' : (style[basedOnProperty[this.keywordIndex]] + ' Char');
                         styleString = charaStyle;
                     } else {
                         styleString = linkStyle;
                     }
                     this.parseStyle(data, styleString, styles);
+                    let linkedStyle: Object;
                     if (!isNullOrUndefined(editor) && editor.isRemoteAction) {
-                        wStyle.link = isNullOrUndefined(this.documentHelper.styles.findByName(styleString.name)) ? style[linkProperty[this.keywordIndex]] : this.documentHelper.styles.findByName(styleString.name);
+                        linkedStyle = this.documentHelper.styles.findByName(styleString[nameProperty[this.keywordIndex]]);
+                        wStyle.link = isNullOrUndefined(linkedStyle) ? style[linkProperty[this.keywordIndex]] : linkedStyle;
                     } else {
-                        wStyle.link = isNullOrUndefined(styles.findByName(styleString.name)) ? style[linkProperty[this.keywordIndex]] : styles.findByName(styleString.name);
+                        linkedStyle = styles.findByName(styleString[nameProperty[this.keywordIndex]]);
+                        wStyle.link = isNullOrUndefined(linkedStyle) ? style[linkProperty[this.keywordIndex]] : linkedStyle;
                     }
                 } else {
                     wStyle.link = link;
@@ -1757,9 +1760,8 @@ export class SfdtReader {
                     textFrame.marginRight = HelperMethods.convertPointToPixel(inline[textFrameProperty[this.keywordIndex]][rightMarginProperty[this.keywordIndex]]);
                     textFrame.marginTop = HelperMethods.convertPointToPixel(inline[textFrameProperty[this.keywordIndex]][topMarginProperty[this.keywordIndex]]);
                     textFrame.marginBottom = HelperMethods.convertPointToPixel(inline[textFrameProperty[this.keywordIndex]][bottomMarginProperty[this.keywordIndex]]);
-                    if (inline[textFrameProperty[this.keywordIndex]][blocksProperty[this.keywordIndex]].length == 0)
-                    {
-                        let block: any = {i:[]};
+                    if (inline[textFrameProperty[this.keywordIndex]][blocksProperty[this.keywordIndex]].length === 0 && shape.autoShapeType === "DownArrow") {
+                        let block: any = this.keywordIndex === 1 ? { i: [] } : { inlines: [] };
                         inline[textFrameProperty[this.keywordIndex]][blocksProperty[this.keywordIndex]].push(block);
                     }
                     this.parseBody(inline[textFrameProperty[this.keywordIndex]][blocksProperty[this.keywordIndex]], textFrame.childWidgets as BlockWidget[], textFrame);
@@ -2637,6 +2639,7 @@ export class SfdtReader {
     private parseTabStop(keyIndex: number, wTabs: any, tabs: WTabStop[]): void {
         if (wTabs) {
             for (let i: number = 0; i < wTabs.length; i++) {
+                let isDuplicate: boolean = false;
                 let tab: any = wTabs[i];
                 if (Object.keys(tab).length > 0) {
                     let tabStop: WTabStop = new WTabStop();
@@ -2644,7 +2647,19 @@ export class SfdtReader {
                     tabStop.tabLeader = this.getTabLeader(tab[tabLeaderProperty[keyIndex]]);
                     tabStop.deletePosition = tab[deletePositionProperty[keyIndex]];
                     tabStop.tabJustification = this.getTabJustification(tab[tabJustificationProperty[keyIndex]]);
-                    tabs.push(tabStop);
+                    for (let j: number = 0; j < tabs.length; j++) {
+                        const existingTab: WTabStop = tabs[j];
+                        if (existingTab.position === tabStop.position &&
+                            existingTab.tabLeader === tabStop.tabLeader &&
+                            existingTab.deletePosition === tabStop.deletePosition &&
+                            existingTab.tabJustification === tabStop.tabJustification) {
+                            isDuplicate = true;
+                            break;
+                        }
+                    }
+                    if (!isDuplicate) {
+                        tabs.push(tabStop);
+                    }
                 }
             }
         }

@@ -345,6 +345,7 @@ export class CheckBox extends Component<HTMLInputElement> implements INotifyProp
         if (this.name) {
             this.element.setAttribute('name', this.name);
         }
+        this.element.setAttribute('tabindex', '0');
         if (this.value) {
             this.element.setAttribute('value', this.value);
             if (this.isVue && typeof this.value === 'boolean' && this.value === true) {
@@ -474,7 +475,7 @@ export class CheckBox extends Component<HTMLInputElement> implements INotifyProp
                 break;
             case 'cssClass':
                 if (oldProp.cssClass) {
-                    removeClass([wrapper], oldProp.cssClass.split(' '));
+                    removeClass([wrapper], oldProp.cssClass.split(/\s+/).filter((c: string) => c.length > 0));
                 }
                 if (newProp.cssClass) {
                     addClass([wrapper], newProp.cssClass.replace(/\s+/g, ' ').trim().split(' '));

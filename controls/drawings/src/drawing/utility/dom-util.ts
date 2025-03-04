@@ -4,9 +4,9 @@ import { Size } from '../primitives/size';
 import { TextStyleModel } from './../core/appearance-model';
 import { PathElement } from '../core/elements/path-element';
 import { TextElement } from '../core/elements/text-element';
-import { whiteSpaceToString, wordBreakToString, textAlignToString, bBoxText } from './base-util';
+import { whiteSpaceToString, wordBreakToString, textAlignToString, bBoxText, bBoxTextHeight } from './base-util';
 import { Matrix, identityMatrix, transformPointByMatrix, rotateMatrix } from '../primitives/matrix';
-import { createElement, Browser, isNullOrUndefined } from '@syncfusion/ej2-base';
+import { createElement, Browser } from '@syncfusion/ej2-base';
 import { BaseAttributes, TextAttributes, SubTextElement, TextBounds } from '../rendering/canvas-interface';
 
 /**
@@ -146,8 +146,8 @@ function getTextOptions(element: TextElement, maxWidth?: number): BaseAttributes
     return options;
 }
 
-
-function wrapSvgText(text: TextAttributes, textValue?: string): SubTextElement[] {
+/** @private */
+function wrapSvgText(text: TextAttributes, textValue?: string, maxHeight?: number, pageHeight?: number): SubTextElement[] {
     let childNodes: SubTextElement[] = []; let k: number = 0;
     let txtValue: string; let bounds1: number;
     let content: string = textValue || text.content;
@@ -177,15 +177,15 @@ function wrapSvgText(text: TextAttributes, textValue?: string): SubTextElement[]
                 }
             }
         } else {
-            childNodes = wordWrapping(text, textValue);
+            childNodes = wordWrapping(text, textValue, maxHeight, pageHeight);
         }
     } else {
         childNodes[childNodes.length] = { text: content, x: 0, dy: 0, width: bBoxText(content, text) };
     }
     return childNodes;
 }
-
-function wordWrapping(text: TextAttributes, textValue?: string): SubTextElement[] {
+/** @private */
+function wordWrapping(text: TextAttributes, textValue?: string, maxHeight?: number, pageHeight?: number): SubTextElement[] {
     let childNodes: SubTextElement[] = []; let txtValue: string = ''; let j: number = 0;
     let i: number = 0; let wrap: boolean = text.whiteSpace !== 'nowrap' ? true : false;
     let content: string = textValue || text.content;
@@ -205,7 +205,7 @@ function wordWrapping(text: TextAttributes, textValue?: string): SubTextElement[
                     words[parseInt(i.toString(), 10)] = words[parseInt(i.toString(), 10)] + '\n';
                 }
                 text.content = words[parseInt(i.toString(), 10)] as string;
-                childNodes = wrapText(text, txtValue, childNodes);
+                childNodes = wrapText(text, txtValue, childNodes, maxHeight, pageHeight);
             } else {
                 txtValue += (((i !== 0 || words.length === 1) && wrap && txtValue.length > 0) ? ' ' : '') + words[parseInt(i.toString(), 10)];
                 newText = txtValue + (words[i + 1] || '');
@@ -233,13 +233,17 @@ function wordWrapping(text: TextAttributes, textValue?: string): SubTextElement[
 }
     return childNodes;
 }
-
-function wrapText(txt: TextAttributes, textValue?: string, childNode?: SubTextElement[]): SubTextElement[] {
+/** @private */
+function wrapText(txt: TextAttributes, textValue?: string, childNode?: SubTextElement[],
+    maxHeight?: number, pageHeight?: number): SubTextElement[] {
     let k: number = 0;
     let txtValue: string; let bounds1: number;
     let content: string = textValue || txt.content;
     txtValue = '';
+    let freeTextHeight: number = txt.y;
+    let height: number = 0;
     txtValue += content[0];
+    let isFreeTextHeightAllowed: boolean; 
     for (k = 0; k < content.length; k++) {
         bounds1 = bBoxText(txtValue, txt);
         if (bounds1 >= txt.width && txtValue.length > 0) {
@@ -250,14 +254,23 @@ function wrapText(txt: TextAttributes, textValue?: string, childNode?: SubTextEl
             let width: number = bBoxText(txtValue, txt);
             if ((Math.ceil(width) + 2 >= txt.width && txtValue.length > 0) || (txtValue.indexOf('\n') > -1)) {
                 txtValue = txtValue.slice(0, -1);
+                height = height +  bBoxTextHeight(txtValue, txt);
+                freeTextHeight += height;
                 width = bBoxText(txtValue, txt);
-                childNode[childNode.length] = { text: txtValue, x: 0, dy: 0, width: width };
+                isFreeTextHeightAllowed = ((maxHeight === undefined || maxHeight === null || height <= maxHeight) &&
+                                          (pageHeight === undefined || pageHeight === null || freeTextHeight <= pageHeight));
+                if (isFreeTextHeightAllowed) {
+                    childNode[childNode.length] = { text: txtValue, x: 0, dy: 0, width: width };
+                }                
                 txtValue = content[k + 1] || '';
+                freeTextHeight+=height;
             }
-            if (k === content.length - 1 && txtValue.length > 0) {
+            isFreeTextHeightAllowed = ((maxHeight === undefined || maxHeight === null || height <= maxHeight) &&
+                                      (pageHeight === undefined || pageHeight === null || freeTextHeight <= pageHeight));
+            if (k === content.length - 1 && txtValue.length > 0 && isFreeTextHeightAllowed) {
                 childNode[childNode.length] = { text: txtValue, x: 0, dy: 0, width: width };
                 txtValue = '';
-            }
+            }            
         }
     }
     return childNode;
@@ -301,12 +314,12 @@ function wrapSvgTextAlign(text: TextAttributes, childNodes: SubTextElement[]): T
 /** @private */
 export function measureText(
     text: TextElement, style: TextStyleModel, content: string,
-    maxWidth?: number, textValue?: string): Size {
+    maxWidth?: number, maxHeight?: number, pageHeight?: number, textValue?: string): Size {
     let bounds: Size = new Size(0, 0);
     let childNodes: SubTextElement[];
     let wrapBounds: TextBounds;
     let options: TextAttributes = getTextOptions(text, maxWidth) as TextAttributes;
-    text.childNodes = childNodes = wrapSvgText(options, textValue);
+    text.childNodes = childNodes = wrapSvgText(options, textValue, maxHeight, pageHeight);
     text.wrapBounds = wrapBounds = wrapSvgTextAlign(options, childNodes);
     bounds.width = wrapBounds.width;
     if (text.wrapBounds.width >= maxWidth && options.textOverflow !== 'Wrap') {

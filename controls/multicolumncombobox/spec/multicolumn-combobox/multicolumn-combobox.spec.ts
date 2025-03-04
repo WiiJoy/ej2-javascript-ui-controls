@@ -1638,8 +1638,14 @@ describe('MultiColumnComboBox control', () => {
                 element.dispatchEvent(event);
                 setTimeout(() => {
                     expect(multiColObj.gridObj.element.querySelectorAll('.e-row')[0].classList.contains('e-row-focus')).toBe(true);
-                    done();
-                }, 1600);
+                    // for coverage
+                    keyEventArgs.action = 'end';
+                    multiColObj.keyActionHandler(keyEventArgs);
+                    setTimeout(() => {
+                        expect(multiColObj.gridObj.element.querySelectorAll('.e-row')[0].classList.contains('e-row-focus')).toBe(false);
+                        done();
+                    }, 1600);
+                }, 1000);
             });
         });
               
@@ -1877,22 +1883,40 @@ describe('MultiColumnComboBox control', () => {
             }
             remove(element);
         });
-        it(' ActionComplete event testing ', (done) => {
+        it(' ActionComplete event testing ', () => {
+            let actionComplete: boolean = false;
+            multiColObj = new MultiColumnComboBox({
+                dataSource: languageData,
+                fields: { text: 'text', value: 'id', groupBy: 'text' },
+                columns: [{ field: 'text', header: 'Language' }, { field: 'id', header: 'ID' }],
+                actionComplete: (): void => {
+                    actionComplete = true;
+                }
+            });
+            multiColObj.appendTo(element);
+            (multiColObj as any).gridObj.trigger('actionComplete', { requestType: 'filtering' });
+            expect(actionComplete).toBe(true);
+        });
+        it(' ActionComplete event testing with sorting ', (done) => {
             let actionComplete: boolean = false;
             let actionCompleteSort: boolean = false;
             multiColObj = new MultiColumnComboBox({
                 dataSource: languageData,
                 fields: { text: 'text', value: 'id', groupBy: 'text' },
                 columns: [{ field: 'text', header: 'Language' }, { field: 'id', header: 'ID' }],
+                text: 'JAVA',
                 actionComplete: (args): void => {
                     actionComplete = true;
                     if (args.requestType === 'sorting') { actionCompleteSort = true; }
                 }
             });
             multiColObj.appendTo(element);
-            (multiColObj as any).gridObj.trigger('actionComplete', { requestType: 'filtering' });
-            expect(actionComplete).toBe(true);
-            done();
+            setTimeout(function () {
+                let dataRowsObject: Object = (multiColObj as any).gridObj.getRowsObject();
+                (multiColObj as any).gridObj.trigger('actionComplete', { requestType: 'sorting', rows: dataRowsObject });
+                expect(actionComplete).toBe(true);
+                done();
+            }, 1200);
         });
         it('Column Resizing property rendering', () => {
             multiColObj = new MultiColumnComboBox({

@@ -340,7 +340,10 @@ export class DOMNode {
      * @deprecated
      */
     public unWrap(element: Element): Element[] {
-        const parent: Element = element.parentNode as Element;
+        const parent: Element = element && element.parentNode as Element;
+        if (!parent) {
+            return [];
+        }
         let unWrapNode: Element[] = [];
         while (element.firstChild && (element.textContent !== ' ')) {
             unWrapNode.push(element.firstChild as Element);
@@ -518,7 +521,7 @@ export class DOMNode {
     public setMarker(save: NodeSelection): void {
         const range: Range = save.range;
         const startChildNodes: NodeListOf<Node> = range.startContainer.childNodes;
-        const isTableStart: boolean = startChildNodes.length > 1 && startChildNodes[0].nodeName === 'TABLE';
+        const isTableStart: boolean = startChildNodes.length > 1 && startChildNodes[0].nodeName === 'TABLE' && range.startOffset === 0;
         const isImgOnlySelected: boolean = startChildNodes.length > 1 && startChildNodes[0].nodeName === 'IMAGE' &&
             range.endOffset === 1 && range.endContainer.nodeName === '#text' && range.endContainer.textContent.length === 0;
         let start: Element = <Element>((isTableStart ? getLastTextNode(startChildNodes[range.startOffset + 1]) :

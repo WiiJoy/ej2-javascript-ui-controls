@@ -2,6 +2,71 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### Grid
+
+#### Bug fixes
+
+- `#I687341` - In `on-demand filtering`, filter dialog in a grouped grid with existing filters did not show all distinct values issue has been resolved.
+- `#I591587` - The issue where the `on-demand filtering` feature did not function correctly when using a `foreign key` column has been resolved.
+- `#I691061` - Resolved an issue where the row was selected while editing a cell in batch mode, even when `checkboxOnly` was enabled.
+- `#I688302` - Fixed an issue where a duplicate `API` call occurred during virtual scrolling.
+- `#I676970` - Resolved an issue where bottom white space appeared after fully scrolling down on the initial virtual grid load.
+
+## 28.2.6 (2025-02-18)
+
+### Grid
+
+#### Bug fixes
+
+- `#I684532` - Resolved the issue where the `dataSourceChanged` event was not triggered when end editing in batch mode with custom data binding.
+- `#I686671` - Fixed an issue where the updated React state was not accessible inside the Grid `filterTemplate`.
+- `#I689691` - Fixed a script error that occurred during the save action when using grouping and hierarchy features.
+- `#I682492` - Resolved the script error that was thrown when copying with column selection in cell selection mode.
+
+## 28.2.5 (2025-02-11)
+
+### Grid
+
+#### Bug fixes
+
+- `#I679470` - The issue of the missing focus border on grid cells after adding rows has been resolved.
+- `#I679056` - The problem of a script error occurring when updating the dataSource with a frozen column and the `All` option in the pager dropdown has been resolved.
+- `#I682856` - Resolved an issue where pressing `ESC` or the cancel button in the toolbar did not properly restore a row after editing.
+- `#I687968` - Fixed an issue where virtual scrolling did not function correctly when frozen columns were enabled.
+- `#I679046` - Resolved an issue where infinite scrolling not loading correctly in Firefox at specific resolutions.
+- `#I682690` - The issue where the `DropDownList popup` does not opening with `Alt + Down Arrow` in the Grid for remote data binding has been resolved.
+
+## 28.2.4 (2025-02-04)
+
+### Grid
+
+#### Bug fixes
+
+- `#I691051` - Fixed a script error thrown when accessing the `pageSize` property within the `actionComplete` event of the Grid.
+- `#I681001` - Resolved the issue where the Update and Cancel buttons were not displayed in normal edit mode on an adaptive layout.
+- `#I665236` - Fixed the issue where the header checkbox displayed an indeterminate state when all rows were selected with `virtualization` enabled.
+-`#I677222` - Resolved an issue where the group caption text was not displayed properly when grouping with frozen columns.
+- `#I679448` - Fixed an issue where the validation error message was hidden under the Grid column header when the grid had only two rows for a custom tooltip.
+- `#I681556` - Resolved an issue where the Grid was displaying only the searched column in the `ColumnChooser`.
+- `#FB64702` - Fixed a script error that occurred on expand or collapse when `InfiniteScrolling` with frozen columns and grouping.
+- `#I683071` - Resolved an issue where data misalignment with the frozen column in the Material 3 theme.
+- `#I660627` - Resolved an issue where column reordering cancellation in the `actionBegin` event did not work as expected when only the header column was reordered.
+
+## 28.2.3 (2025-01-29)
+
+### Grid
+
+#### Bug fixes
+
+- `#I665951` - A blank space that appeared on the initial render when using frozen columns with `columnVirtualization` has been fixed.
+- `#I676688` - A script error that occurred during Excel export for image columns when grid column widths were not defined has been resolved.
+- `#I681573` - A script error that occurred when clicking the Cancel or Save button in dialog editing with grouping has been resolved.
+- `#I657081` - Duplicate `API` requests triggered during `virtual scrolling` in the grid have been resolved.
+- `#I678648` - The issue with the invalid attribute name `aria-grouped` detected in the Grid component with grouping has been fixed.
+- `#I679153` - A script error that occurred when destroying the grid with `virtualization` and `persistence` enabled has been fixed.
+
 ## 28.1.41 (2025-01-21)
 
 ### Grid

@@ -2,6 +2,96 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### Mention
+
+#### Bug Fixes
+
+- `#I688683` - Fixed an issue where the search method was not functioning correctly.
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I689744` - The issue with chip item removal in the Dropdown Tree Component has been resolved.
+
+- `#I689346` - Resolved alignment and font size theme issues within the Dropdown Tree component.
+
+- `#I682703` - The issue where focus remained highlighted when reopening the Dropdown Tree multiple times has been resolved.
+
+## 28.2.6 (2025-02-18)
+
+### MultiSelect
+
+#### Bug Fixes
+
+- `#I688364` - Fixed an issue with the positioning issue of the Multi select component popup while enabling the RTL mode.
+
+### ComboBox
+
+#### Bug Fixes
+
+- `#I683160` - Fixed the issue where an ComboBox makes the page unresponsive after filtering with no result.
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I682127` - Resolved an issue where the checkbox state was not maintained properly during custom filtering operations in the Dropdown Tree component.
+
+- `#I682703`, `#I691872` - An Focusing issues in Dropdown Tree component when `showSelectAll` property is true has been resolved.
+
+## 28.2.5 (2025-02-11)
+
+### ComboBox
+
+#### Bug Fixes
+
+- `#I685229` - Fixed the issue where an extra space appears when using the allowResize with height properties.
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I684184` - An issue when using value property as two way binding and selecting a filtered node has been resolved.
+
+- `#I681976` - An issue with value property when updating a data source dynamically in Dropdown Tree component has been resolved.
+
+- `#I682748` - An issue Tab focus occurs when navigating a disabled Dropdown Tree component has been resolved.
+
+- `#I682703` - An Focusing issues in Dropdown Tree component when `showSelectAll` property is true has been resolved.
+
+## 28.2.4 (2025-02-04)
+
+### DropDownTree
+
+#### Bug Fixes
+
+- `#I679000` - An issue with react Dropdown Tree `CustomTemplate` when the state updates in the change event has been resolved.
+
+- `#I681727` - An issue with selection and `CustomTemplate` not updating after filtering in Dropdown Tree component has been resolved.
+
+### MultiSelect
+
+#### Bug Fixes
+
+- `#I681861` - Fixed an issue where the popup would detach from the control when virtualization was enabled during filtering.
+
+## 28.2.3 (2025-01-29)
+
+### ListBox
+
+#### Bug Fixes
+
+- `#I933368` - Issue with "Filter input loss focus if the last letter is removed using backspace in listbox" has been resolved.
+
+### MultiSelect
+
+#### Bug Fixes
+
+- `#I679387` - Fixed an issue where no records were found in the popup after selecting all items.
+
 ## 28.1.41 (2025-01-21)
 
 ### ComboBox

@@ -1367,7 +1367,7 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
 
     protected setHeightWidth(): void {
         let heightValue: string;
-        if (isNullOrUndefined(this.cellSpacing)) { return; }
+        if (isNullOrUndefined(this.cellSpacing) || (this.panels.length === 0 && this.panelCollection.length === 0)) { return; }
         if (this.checkMediaQuery()) {
             let entirePanelsY: number = 0;
             for (let i: number = 0; i < this.panels.length; i++) {
@@ -1385,6 +1385,11 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
         setStyle(this.element, { 'height': heightValue });
         const widthValue: string = window.getComputedStyle(this.element).width;
         setStyle(this.element, { 'width': widthValue });
+    }
+
+    private setEmptyLayoutHeight(): void {
+        this.element.style.removeProperty('height');
+        this.element.style.removeProperty('width');
     }
 
     protected setHeightAndWidth(panelElement: HTMLElement, panelModel: PanelModel): void {
@@ -2509,16 +2514,17 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
             this.updateRowsHeight(eleRowValue, eleSizeY, eleSizeY);
             this.updateDragArea();
             this.shadowEle = document.createElement('div');
-            this.shadowEle.classList.add('e-holder');
-            this.shadowEle.classList.add('e-holder-transition');
+            this.shadowEle.classList.add('e-holder', 'e-holder-transition');
             setStyle(this.shadowEle, { 'position': 'absolute' });
             addClass([this.element], [preventSelect]);
             addClass([args.element], [dragging]);
             this.element.appendChild(this.shadowEle);
             this.renderReactTemplates();
             this.shadowEle = document.querySelector('.e-holder');
-            this.shadowEle.style.height = (this.getCellInstance(args.element.id).sizeY * <number>this.cellSize[1]) + 'px';
-            this.shadowEle.style.width = (this.getCellInstance(args.element.id).sizeX * <number>this.cellSize[0]) + 'px';
+            const panelValues: PanelModel = this.getCellInstance(args.element.id);
+            const shadowSize: { width: string; height: string } = this.calculateShadowElementSize(panelValues.sizeX, panelValues.sizeY);
+            this.shadowEle.style.height = shadowSize.height;
+            this.shadowEle.style.width = shadowSize.width;
             const panelInstance: PanelModel = this.getCellInstance(args.element.id);
             this.setPanelPosition(this.shadowEle, panelInstance.row, panelInstance.col);
         }
@@ -2658,12 +2664,18 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
         const heightValue: number = this.getCellSize()[1];
         const top: number = row === 0 ? 0 : (((row) * (heightValue + this.cellSpacing[1])));
         const left: number = col === 0 ? 0 : (((col) * (widthValue + this.cellSpacing[0])));
-        const cellSizeOne: number = this.getCellSize()[1];
-        const cellSizeZero: number = this.getCellSize()[0];
         this.elementRef.top = this.shadowEle.style.top = top + 'px';
         this.elementRef.left = this.shadowEle.style.left = left + 'px';
-        this.elementRef.height = this.shadowEle.style.height = ((sizeY * cellSizeOne) + ((sizeY - 1) * this.cellSpacing[1])) + 'px';
-        this.elementRef.width = this.shadowEle.style.width = ((sizeX * cellSizeZero) + ((sizeX - 1) * this.cellSpacing[0])) + 'px';
+        const shadowSize: { width: string; height: string } = this.calculateShadowElementSize(sizeX, sizeY);
+        this.elementRef.height = this.shadowEle.style.height = shadowSize.height;
+        this.elementRef.width = this.shadowEle.style.width = shadowSize.width;
+    }
+
+    protected calculateShadowElementSize(sizeX: number, sizeY: number): { width: string; height: string } {
+        return {
+            width: (sizeX * this.cellSize[0]) + ((sizeX - 1) * this.cellSpacing[0]) + 'px',
+            height: (sizeY * this.cellSize[1]) + ((sizeY - 1) * this.cellSpacing[1]) + 'px'
+        };
     }
 
     protected getCellInstance(idValue: string): PanelModel {
@@ -2881,6 +2893,7 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
         this.updateCloneArrayObject();
         this.checkForChanges(false, null, clonedPanels);
         this.removeAllCalled = false;
+        this.setEmptyLayoutHeight();
     }
 
     /**
@@ -2921,6 +2934,9 @@ export class DashboardLayout extends Component<HTMLElement> implements INotifyPr
         });
         this.updateCloneArrayObject();
         this.checkForChanges(false, null, [removedPanel]);
+        if (this.panels.length === 0 && this.panelCollection.length === 0) {
+            this.setEmptyLayoutHeight();
+        }
     }
 
     constructor(options?: DashboardLayoutModel, element?: string | HTMLElement) {

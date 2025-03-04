@@ -325,7 +325,7 @@ export class VirtualScroll {
         let diff: number = 0;
         if (this.parent.scrollSettings.isFinite) {
             const sheet: SheetModel = this.parent.getActiveSheet();
-            const count: number = skipHiddenIdx(sheet, (sheet[layout + 'Count'] - 1), false);
+            const count: number = skipHiddenIdx(sheet, (sheet[layout + 'Count'] - 1), false, layout === 'col' ? 'columns' : 'rows');
             if (idx > count) {
                 diff = idx - count; idx = count;
             }
@@ -629,7 +629,7 @@ export class VirtualScroll {
         if (args.rowIdx < this.scroll[this.parent.activeSheetIndex].rowCount) {
             this.updateVTrack(this.rowHeader, this.getVTrackHeight('height') + args.threshold, 'height');
         }
-        if (args.rowIdx >= frozenRow && args.rowIdx < this.parent.scrollModule.offset.top.idx) {
+        if (args.rowIdx >= frozenRow && args.rowIdx < this.parent.scrollModule.offset.top.idx + frozenRow) {
             const mainPanel: Element = this.parent.element.getElementsByClassName('e-main-panel')[0];
             if (mainPanel) {
                 this.parent.scrollModule.prevScroll.scrollTop = mainPanel.scrollTop + args.threshold;

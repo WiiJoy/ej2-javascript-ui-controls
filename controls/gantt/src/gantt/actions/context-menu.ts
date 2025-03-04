@@ -150,6 +150,16 @@ export class ContextMenu {
                     data[taskfields.parentID] = null;
                 }
                 if (this.rowData) {
+                    if (this.parent.viewType === 'ResourceView' && this.rowData.parentItem
+                        && data[this.parent.taskFields.resourceInfo as string]) {
+                        const parentItem: IGanttData = this.parent.getParentTask(this.rowData.parentItem);
+                        const resourceFieldId: string = this.parent.resourceFields.id;
+                        const taskResources: object[] = this.rowData.taskData[this.parent.taskFields.resourceInfo as string];
+                        const matchingResource: object = taskResources.find((resource: object) =>
+                            resource[resourceFieldId as string] === parentItem.ganttProperties.taskId
+                        );
+                        data[this.parent.taskFields.resourceInfo as string] = matchingResource ? [matchingResource] : [];
+                    }
                     const rowIndex: number = this.parent.updatedRecords.indexOf(this.rowData);
                     this.parent.addRecord(data, position, rowIndex);
                 }
@@ -356,7 +366,7 @@ export class ContextMenu {
                 this.parent.ganttChartModule.targetElement;
         // Closed edited cell before opening context menu
         if ((!isNullOrUndefined(this.parent.editModule) && this.parent.editModule.cellEditModule && this.parent.editModule.cellEditModule.isCellEdit && target.parentElement.classList.contains('e-row')) || target.parentElement.classList.contains('e-treecolumn-container')) {
-            this.parent.treeGrid.closeEdit();
+            this.parent.treeGrid.endEdit();
         }
         if (!isNullOrUndefined(args.element) && args.element.id === this.parent.element.id + '_contextmenu') {
             this.clickedPosition = getValue('event', args).clientX;

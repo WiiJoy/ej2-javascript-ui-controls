@@ -1077,8 +1077,7 @@ export class ChartRows extends DateProcessor {
                     labelDiv = '<span class="' + cls.taskLabel + '" style="line-height:' +
                         (data[this.parent.taskFields.manual] && data.hasChildRecords ? (Math.floor((60 / 100) * this.taskBarHeight)) :
                             (this.taskBarHeight - 1)) + 'px; text-align:' + (this.parent.enableRtl ? 'right;' : 'left;') +
-                        'display:' + 'inline-block;' +
-                        'width:' + (data.ganttProperties.width - 10) + 'px; height:' +
+                        'display:' + 'inline-block;' + 'width:' + (data.ganttProperties.width - 10) + 'px; height:' +
                         this.taskBarHeight + 'px;"></span>';
                 } else {
                     labelDiv = '<span class="' +
@@ -2398,6 +2397,15 @@ export class ChartRows extends DateProcessor {
                 }
                 else {
                     tr.replaceChild(this.getGanttChartRow(index, data).childNodes[0], tr.childNodes[0]);
+                    if (this.parent.enableMultiTaskbar && data.parentItem) {
+                        const parentID: string = data.parentItem.taskId;
+                        const parentData: IGanttData = this.parent.getRecordByID(parentID);
+                        if (!parentData.expanded) {
+                            const parentTr: Element = this.parent.getRowByID(parentID);
+                            parentTr.replaceChild(this.getGanttChartRow(Number(parentID), parentData).childNodes[0],
+                                                  parentTr.childNodes[0]);
+                        }
+                    }
                 }
             }
             this.parent.renderTemplates();

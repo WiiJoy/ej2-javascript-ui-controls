@@ -1,7 +1,7 @@
 import { detach, EventHandler, Browser, L10n, isNullOrUndefined, extend, isUndefined } from '@syncfusion/ej2-base';
 import { ClickEventArgs } from '@syncfusion/ej2-navigations';
 import { Spreadsheet } from '../base/index';
-import { SheetModel, getRangeIndexes, getCell, getSheet, CellModel, getSwapRange, inRange, Workbook, getCellAddress, isReadOnly, getRow} from '../../workbook/index';
+import { SheetModel, getRangeIndexes, getCell, getSheet, CellModel, getSwapRange, inRange, Workbook, isReadOnly, getRow } from '../../workbook/index';
 import { CellStyleModel, getRangeAddress, getSheetIndexFromId, getSheetName, NumberFormatArgs } from '../../workbook/index';
 import { RowModel, getFormattedCellObject, workbookFormulaOperation, checkIsFormula, Sheet, mergedRange } from '../../workbook/index';
 import { ExtendedSheet, Cell, setMerge, MergeArgs, getCellIndexes, ChartModel } from '../../workbook/index';
@@ -784,28 +784,21 @@ export class Clipboard {
                     cell: cell, rowIdx: rIdx, colIdx: cIdx, pvtExtend: !isExtend, valChange: !isUniqueCell, lastCell: lastCell,
                     uiRefresh: uiRefresh, requestType: 'paste', skipFormatCheck: !args.isExternal, isRandomFormula: args.isRandFormula
                 }, actionData, isUndo);
-            if (!cancel && cell) {
-                if (cell.validation) {
-                    const cellAdress: string = getCellAddress(rIdx, cIdx);
-                    this.parent.dataValidationRange += cellAdress + ':' + cellAdress + ',';
+            if (!cancel && cell && cell.style && args.isExternal) {
+                let hgt: number = getTextHeightWithBorder(
+                    this.parent, rIdx, cIdx, sheet, cell.style || this.parent.cellStyle, cell.wrap ? getLines(
+                        this.parent.getDisplayText(cell), getExcludedColumnWidth(
+                            sheet, rIdx, cIdx, cell.colSpan > 1 ? cIdx + cell.colSpan - 1 : cIdx), cell.style, this.parent.cellStyle) : 1);
+                hgt = Math.round(hgt);
+                if (hgt < 20) {
+                    hgt = 20; // default height
                 }
-                if (cell.style && args.isExternal) {
-                    let hgt: number =
-                        getTextHeightWithBorder(this.parent as Workbook, rIdx, cIdx, sheet, cell.style || this.parent.cellStyle, cell.wrap ?
-                            getLines(this.parent.getDisplayText(cell),
-                                     getExcludedColumnWidth(sheet, rIdx, cIdx, cell.colSpan > 1 ? cIdx + cell.colSpan - 1 : cIdx),
-                                     cell.style, this.parent.cellStyle) : 1);
-                    hgt = Math.round(hgt);
-                    if (hgt < 20) {
-                        hgt = 20; // default height
-                    }
-                    setMaxHgt(sheet, rIdx, cIdx, hgt);
-                    const prevHeight: number = getRowsHeight(sheet, rIdx);
-                    const maxHgt: number = getMaxHgt(sheet, rIdx);
-                    const heightChanged: boolean = maxHgt > prevHeight;
-                    if (heightChanged) {
-                        setRowEleHeight(this.parent, sheet, maxHgt, rIdx);
-                    }
+                setMaxHgt(sheet, rIdx, cIdx, hgt);
+                const prevHeight: number = getRowsHeight(sheet, rIdx);
+                const maxHgt: number = getMaxHgt(sheet, rIdx);
+                const heightChanged: boolean = maxHgt > prevHeight;
+                if (heightChanged) {
+                    setRowEleHeight(this.parent, sheet, maxHgt, rIdx);
                 }
             }
             return cancel;
@@ -1201,7 +1194,7 @@ export class Clipboard {
                             if (checkIsFormula(col)) {
                                 cells[j as number].formula = col;
                             } else {
-                                cells[j as number].value = <string>parseIntValue(col.trim(), true);
+                                cells[j as number].value = <string>parseIntValue(col.trim(), true, true);
                             }
                         }
                     }
@@ -1290,13 +1283,13 @@ export class Clipboard {
                     cells[colIdx as number].style = cellStyle;
                 }
                 if (td.textContent) {
-                    cells[colIdx as number].value = <string>parseIntValue(td.textContent.trim(), true);
+                    cells[colIdx as number].value = <string>parseIntValue(td.textContent.trim(), true, true);
                 }
                 formatStr = isSpreadsheet ? 'num-format' : 'number-format';
                 if (td.getAttribute(formatStr)) {
                     cells[colIdx as number].format = td.getAttribute(formatStr);
                     if (cells[colIdx as number].value && td.getAttribute('cell-value')) {
-                        cells[colIdx as number].value = <string>parseIntValue(td.getAttribute('cell-value').trim(), true);
+                        cells[colIdx as number].value = <string>parseIntValue(td.getAttribute('cell-value').trim(), true, true);
                     }
                 }
                 if (td.getAttribute('colspan') && parseInt(td.getAttribute('colspan'), 10) > 1) {

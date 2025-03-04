@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
-## 28.1.41 (2025-01-21)
+## 28.2.6 (2025-02-18)
+
+### Diagram
+
+#### Bug Fixes
+
+- `#I667084` - Excessive space is no longer created between nodes in complex hierarchical tree layout.
+
+## 28.1.39 (2024-01-14)
 
 ### Diagram
 

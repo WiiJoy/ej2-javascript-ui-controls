@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### DocumentEditor
+
+#### Bug Fixes
+
+- `#I682091` - Fixed a document corruption issue when applying a custom style and exporting to Docx.
+- `#I683126` - Fixed a script error that occurred when performing undo, delete, and reject actions on track changes content.
+- `#I691258` - Fixed an issue where undoing the deletion of list items did not work correctly with track changes enabled.
+- `#I687962` - Fixed incorrect behaviour when applying "Capitalize Each Word" to sentences containing multiple words with apostrophes.
+- `#I683579` - Fixed a spell checker issue that occurred when track changes were enabled on combined insertion and deletion content.
+- `#I688793` - Fixed a script error that occurred when opening an SFDT document containing track changes content.
+
+## 28.2.6 (2025-02-18)
+
+### DocumentEditor
+
+#### Bug Fixes
+
+- `#I682967` - Fixed a script error that occurred when deleting content inside an edit region.
+- `#I684112` - Fixed a script issue when opening a line-marker chart in Document Editor.
+- `#I683052` - Fixed a bookmark insertion issue when spell check is enabled.
+
+## 28.2.5 (2025-02-11)
+
+### DocumentEditor
+
+#### Bug Fixes
+
+- `#I683467` - Improved performance by optimizing bookmark manipulation during text insertion.
+- `#I684634` - Fixed an issue where focus moved to the document editor when selecting a tracked revision.
+- `#I684435` - Resolved a freezing issue when accepting all tracked changes.
+- `#I686056` - Fixed an issue where the background color was not updating properly in the properties pane.
+- `#I679707` - Corrected the continuation of page numbers after restarting page numbering.
+- `#I680995` - Fixed font rendering issues when applying the theme font to text.
+- `#I687189` - Resolved caret height inconsistencies in collaborative editing.
+- `#I682585` - Fixed incorrect list indentation when performing an undo action.
+- `#F195801` - Resolved an issue where the content change event was triggered twice when applying a paragraph style.
+
+## 28.2.4 (2025-02-04)
+
+### DocumentEditor
+
+#### Bug Fixes
+
+- `#I680965` - Fixed document corruption when opening a client-side exported DOCX in Microsoft Word.
+- `#I681505` - Fixed issues with programmatically added comment replies and text range selection in the Document Editor.
+- `#I684705` - Fixed wavy underline rendering issue for non-misspelled words when pressing backspace.
+- `#I680849` - Fixed missing split cell content when a row spans multiple pages.
+- `#I667699` - Fixed missing content in shapes after copying and pasting the entire content, followed by server-side DOCX export.
+- `#I678996`, `#I678997`, `#I678999` - Fixed script errors when accepting track changes in list paragraphs and table paragraphs.
+
 ## 28.1.39 (2024-01-14)
 
 ### DocumentEditor

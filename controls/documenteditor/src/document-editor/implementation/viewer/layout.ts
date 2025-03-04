@@ -1182,9 +1182,15 @@ export class Layout {
 
     private updateRevisionRange(revision: Revision, page: Page): any {
         for (let i: number = 0; i < revision.range.length; i++) {
-            const inline: TextElementBox = (revision.range[i] as TextElementBox);
-            if (!inline.line.paragraph.bodyWidget.page) {
-                inline.line.paragraph.bodyWidget.page = page;
+            const inline: object = revision.range[i];
+            if (inline instanceof TextElementBox) {
+                if (isNullOrUndefined(inline.line.paragraph.bodyWidget.page)) {
+                    inline.line.paragraph.bodyWidget.page = page;
+                }
+            } else if (inline instanceof WCharacterFormat) {
+                if (isNullOrUndefined((inline.ownerBase as ParagraphWidget).bodyWidget.page)) {
+                    (inline.ownerBase as ParagraphWidget).bodyWidget.page = page;
+                }
             }
         }
     }
@@ -2176,6 +2182,7 @@ export class Layout {
                         && (element.reference.paragraph.lastChild as LineWidget).children[(element.reference.paragraph.lastChild as LineWidget).children.length - 1] !== element.reference) {
                             element.contentControlWidgetType = 'Inline';
                             element.reference.contentControlWidgetType = 'Inline';
+                            element.contentControlProperties.contentControlWidgetType = 'Inline';
                             let block: BlockWidget = element.paragraph;
                             if (block === element.reference.paragraph && element.reference.paragraph.contentControlProperties) {
                                 element.reference.paragraph.contentControlProperties = undefined;
@@ -2258,6 +2265,19 @@ export class Layout {
             }
             }
             if (element instanceof EditRangeStartElementBox || element instanceof EditRangeEndElementBox) {
+                if (element instanceof EditRangeStartElementBox) {
+                    const user: string = element.user !== '' ? element.user : element.group;
+                    if (this.documentHelper.editRanges.containsKey(user)) {
+                        let editStartCollection: EditRangeStartElementBox[] = this.documentHelper.editRanges.get(user);
+                        if (editStartCollection.indexOf(element) === -1) {
+                            editStartCollection.push(element);
+                        }
+                    } else {
+                        let newEditStartCollection: EditRangeStartElementBox[] = [];
+                        newEditStartCollection.push(element);
+                        this.documentHelper.editRanges.add(user, newEditStartCollection);
+                    }
+                }
                 if (element instanceof EditRangeStartElementBox && (this.documentHelper.owner.currentUser === element.user || (element.group === "Everyone" && element.user === ""))) {
                     if (element.columnFirst != -1 && element.columnLast != -1) {
                         let row = element.paragraph.associatedCell.ownerRow;
@@ -6415,7 +6435,7 @@ export class Layout {
         // Calculates tabwidth based on pageleftmargin and defaulttabwidth property
         let defaultTabWidth: number = HelperMethods.convertPointToPixel(this.documentHelper.defaultTabWidth);
         if (tabs.length === 0 && (position > 0 && defaultTabWidth > Math.round(position) && isList ||
-            defaultTabWidth === this.defaultTabWidthPixel && defaultTabWidth > Math.round(position))) {
+            defaultTabWidth === this.defaultTabWidthPixel && defaultTabWidth > Math.round(position) && position > 0)) {
             return defaultTabWidth - position;
         } else {
             let breaked: boolean = false;
@@ -6448,6 +6468,9 @@ export class Layout {
             }
             if (!isCustomTab) {
                 let diff: number = parseFloat(((position * 100) % (defaultTabWidth * 100) / 100).toFixed(2));
+                if (diff < 0 && isList) {
+                    diff += defaultTabWidth;
+                }
                 let cnt: number = (position - diff) / defaultTabWidth;
                 fPosition = (cnt + 1) * defaultTabWidth;
             }
@@ -6545,7 +6568,7 @@ export class Layout {
             if (elementBox instanceof TextElementBox && (elementBox as TextElementBox).text === '\t') {
                 return width;
             } else {
-                width = width + elementBox.width;
+                width = (elementBox instanceof ShapeElementBox && elementBox.textWrappingStyle !== "Inline") ? width : width + elementBox.width;
             }
             elementBox = elementBox.nextNode;
         }
@@ -7335,7 +7358,7 @@ export class Layout {
             let cellWidget: TableCellWidget = tableRowWidget.childWidgets[i] as TableCellWidget;
             if (i === 0 && cellWidget.childWidgets.length > 0 && cellWidget.columnIndex === 0
                 && cellWidget.cellFormat.rowSpan === 1 && this.documentHelper.compatibilityMode === 'Word2013'
-                && !this.isVerticalMergedCellContinue(tableRowWidget) && this.documentHelper.splittedCellWidgets.length === 0) {
+                && this.documentHelper.splittedCellWidgets.length === 0) {
                 const firstBlock: ParagraphWidget = this.documentHelper.getFirstParagraphInCell(cellWidget as TableCellWidget);
                 if (!isNullOrUndefined(firstBlock) && firstBlock.paragraphFormat.keepWithNext && !isNullOrUndefined(this.getPreviousBlock(tableRowWidget))) {
                     return tableRowWidget;
@@ -8192,7 +8215,7 @@ export class Layout {
                     continue;
                 }
                 // Bug 871725: Empty cell widget must be inserted if the table split into next page.
-                if (tableCollection.length == 1) {
+                if (tableCollection.length === 1 && this.documentHelper.splittedCellWidgets.length === 0) {
                     break;
                 }
                 const length: number = rowWidget.childWidgets.length;
@@ -8307,6 +8330,9 @@ export class Layout {
                 let rowSpan: number = 1;
                 const cellWidget: TableCellWidget = rowWidget.childWidgets[j] as TableCellWidget;
                 const cellspace = !isNullOrUndefined(cellWidget.ownerTable) && !isNullOrUndefined(cellWidget.ownerTable.tableFormat) ? HelperMethods.convertPointToPixel(cellWidget.ownerTable.tableFormat.cellSpacing) : 0;
+                if (Math.round(previousLeft) !== Math.round(cellWidget.x - cellWidget.margin.left - cellspace)) {
+                    previousLeft = (cellWidget.x - cellWidget.margin.left - cellspace);
+                }
                 if (Math.round(left) === Math.round(previousLeft)) {
                     rowSpan = (isNullOrUndefined(cellWidget) || isNullOrUndefined(cellWidget.cellFormat)) ? rowSpan :
                         cellWidget.cellFormat.rowSpan;
@@ -8333,9 +8359,6 @@ export class Layout {
                         //}
                         //}
                     }
-                }
-                if (Math.round(previousLeft) !== Math.round(cellWidget.x - cellWidget.margin.left - cellspace)) {
-                    previousLeft = (cellWidget.x - cellWidget.margin.left - cellspace);
                 }
                 previousLeft += cellWidget.margin.left + cellWidget.width + cellWidget.margin.right;
             }
@@ -8985,7 +9008,7 @@ export class Layout {
         const cellContentHeight: number = this.getCellContentHeight(cellWidget, true);
         //Displacement field holds the value which has reduced from rowHeight and cellContentHeight
         let displacement: number = 0;
-        if (rowHeight > cellContentHeight && rowHeight <= this.viewer.clientArea.height) {
+        if (rowHeight > cellContentHeight && rowHeight <= this.viewer.clientArea.height && !cellWidget.isSplittedCell) {
             displacement = rowHeight - cellContentHeight;
             if (cellWidget.cellFormat.verticalAlignment === 'Center') {
                 displacement = displacement / 2;
@@ -10698,7 +10721,7 @@ export class Layout {
             if (this.viewer instanceof PageLayoutViewer || (this.viewer instanceof WebLayoutViewer && !(fieldBegin.line.paragraph.containerWidget instanceof TextFrame || fieldBegin.line.paragraph.bodyWidget instanceof HeaderFooterWidget))) {
                 if (!isNullOrUndefined(this.documentHelper.selection)) {
                     const fieldCode: string = this.documentHelper.selection.getFieldCode(fieldBegin);
-                    const regex: RegExp = /^(?!.*\bhyperlink\b).*\bpage\b.*$/;
+                    const regex: RegExp = /^(?!.*\bhyperlink\b)(?!.*\bnumpages\b).*\bpage\b.*$/;
                     if (!isNullOrUndefined(fieldCode) && (fieldCode.toLowerCase().match('numpages') || fieldCode.toLowerCase().match('sectionpages') || (regex.test(fieldCode.toLowerCase()) && reLayout)) && !isNullOrUndefined(fieldBegin.fieldSeparator)) {
                         const textElement: FieldTextElementBox = fieldBegin.fieldSeparator.nextNode as FieldTextElementBox;
                         if (!isNullOrUndefined(textElement)) {

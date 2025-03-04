@@ -2,6 +2,61 @@
 
 ## [Unreleased]
 
+## 28.2.7 (2025-02-25)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I691472` - Now, the exception did not occur when trying to print the document without annotation modules.
+- `#I687949` - Now, the Exception will not occur while loading the customer provided document with form fields.
+- `#I688986` - Now, the form field bounds values are available in the `formFieldAdd` event.
+- Now, the script error did not occur when loading the document with modified toolbar settings.
+- `#I689173` - Now, the form field on the non-rendered page does not disappear after filling in the textbox field.
+
+## 28.2.6 (2025-02-18)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I664230` - Now , the signature annotation will appear in UI upon import when deleted programmatically.
+- `#I683048` - Now , the custom stamp image will appear in UI when changing the image source dynamically.
+- `#I686411` - Now, the pan mode is not disabled when the Ctrl key is pressed.
+- `#I686925`, `#686758` - Now, the `findText` method properly returns the width value for the searched text.
+- `#I689347` - Now, the script error no longer occurs when deleting the text markup annotation using the `deleteAnnotationById` method.
+
+## 28.2.5 (2025-02-11)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I683657` - Now, the scale ratio updated properly when changing the `measurementSettings` dynamically.
+- `#I683269` - Now, the form field value is updated properly after disabling read-only mode programmatically.
+- `#I675316` - The date and time format is now preserved correctly in the comment panel when importing annotations.
+- `#I687098` - Now , the Exception will not occur when downloading the customer provided document with the newly added annotation.
+- `#I680877` - Now, the handwritten signature width and height are not swapped for rotated documents.
+- `#I682398` - Now, the font height is retrieved properly from the widget annotation.
+- `#I686841` - Now , the `customData` will update properly when adding the annotations programmatically.
+
+## 28.2.4 (2025-02-04)
+
+### PDF Viewer
+
+#### Breaking Changes
+
+- `#I661474` - The default preservation of highlight annotations has been enhanced, along with an update to the default highlight color when added programmatically.
+
+## 28.2.3 (2025-01-29)
+
+### PDF Viewer
+
+#### Bug Fixes
+
+- `#I679527` - Now, the annotations no longer disappear when programmatically selecting annotations on a non-rendered page.
+- `#I678021` - Now, the order of annotations is properly preserved if the document contains stamp annotations.
+
 ## 28.1.41 (2025-01-21)
 
 ### PDF Viewer

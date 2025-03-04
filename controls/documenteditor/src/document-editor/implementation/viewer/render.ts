@@ -1798,7 +1798,7 @@ private calculatePathBounds(data: string): Rect {
                         elementBox.canTrigger = true;
                         }
                         elementBox.isVisible = false;
-                        if ((!elementBox.isSpellChecked && !elementBox.isSpellCheckTriggred) || elementBox.line.paragraph.isChangeDetected) {
+                        if ((!elementBox.isSpellChecked && !elementBox.isSpellCheckTriggered) || elementBox.line.paragraph.isChangeDetected) {
                             elementBox.ischangeDetected = true;
                         }
                     }
@@ -2344,33 +2344,37 @@ private calculatePathBounds(data: string): Rect {
                 elementBox.canTrigger = true;
                 this.leftPosition = this.pageLeft;
                 this.topPosition = this.pageTop;
-                let errorDetails: ErrorInfo = this.spellChecker.checktextElementHasErrors(elementBox.text, elementBox, left);
-                if (errorDetails.errorFound && !this.isPrinting) {
-                    color = '#FF0000';
-                    let backgroundColor: string = (containerWidget instanceof TableCellWidget) ? (containerWidget as TableCellWidget).cellFormat.shading.backgroundColor : this.documentHelper.backgroundColor;
-                    const errors = this.spellChecker.errorWordCollection;
-                    for (let i: number = 0; i < errorDetails.elements.length; i++) {
-                        let currentElement: ErrorTextElementBox = errorDetails.elements[i];
-                        const exactText = this.spellChecker.manageSpecialCharacters(currentElement.text, undefined, true);
-                        if (elementBox.ignoreOnceItems.indexOf(exactText) === -1) {
-                            if (isRTL) {
-                                this.renderWavyLine(currentElement, (isNullOrUndefined(currentElement.end)) ? left : currentElement.end.location.x, top, underlineY, color, 'Single', format.baselineAlignment, backgroundColor);
-                            } else {
-                                this.renderWavyLine(currentElement, (isNullOrUndefined(currentElement.start)) ? left : currentElement.start.location.x, top, underlineY, color, 'Single', format.baselineAlignment, backgroundColor);
-                            }
-                            elementBox.isWrongWord = true;
-                            if (errors.containsKey(exactText)) {
-                                const errorElements = errors.get(exactText);
-                                if (errorElements.indexOf(currentElement) === -1) {
-                                    errorElements.push(currentElement);
+                let isDeleteRevision: boolean = false;
+                if (!isNullOrUndefined(elementBox.revisions) && elementBox.revisions.length > 0) {
+                    isDeleteRevision = elementBox.revisions[0].revisionType === "Deletion" ? true : false;
+                }
+                if (!isDeleteRevision) {
+                    let errorDetails: ErrorInfo = this.spellChecker.checktextElementHasErrors(elementBox.text, elementBox, left);
+                    if (errorDetails.errorFound && !this.isPrinting) {
+                        color = '#FF0000';
+                        let backgroundColor: string = (containerWidget instanceof TableCellWidget) ? (containerWidget as TableCellWidget).cellFormat.shading.backgroundColor : this.documentHelper.backgroundColor;
+                        const errors = this.spellChecker.errorWordCollection;
+                        for (let i: number = 0; i < errorDetails.elements.length; i++) {
+                            let currentElement: ErrorTextElementBox = errorDetails.elements[i];
+                            const exactText = this.spellChecker.manageSpecialCharacters(currentElement.text, undefined, true);
+                            if (elementBox.ignoreOnceItems.indexOf(exactText) === -1) {
+                                if (isRTL) {
+                                    this.renderWavyLine(currentElement, (isNullOrUndefined(currentElement.end)) ? left : currentElement.end.location.x, top, underlineY, color, 'Single', format.baselineAlignment, backgroundColor);
+                                } else {
+                                    this.renderWavyLine(currentElement, (isNullOrUndefined(currentElement.start)) ? left : currentElement.start.location.x, top, underlineY, color, 'Single', format.baselineAlignment, backgroundColor);
+                                }
+                                if (errors.containsKey(exactText)) {
+                                    const errorElements = errors.get(exactText);
+                                    if (errorElements.indexOf(currentElement) === -1) {
+                                        errorElements.push(currentElement);
+                                    }
                                 }
                             }
                         }
+                    } else if (elementBox.ischangeDetected || this.documentHelper.triggerElementsOnLoading) {
+                        this.handleChangeDetectedElements(elementBox, underlineY, left, top, format.baselineAlignment);
+                        elementBox.isSpellCheckTriggered = true;
                     }
-                } else if (elementBox.ischangeDetected || this.documentHelper.triggerElementsOnLoading) {
-                    elementBox.ischangeDetected = false;
-                    this.handleChangeDetectedElements(elementBox, underlineY, left, top, format.baselineAlignment);
-                    elementBox.isSpellCheckTriggred = true;
                 }
             }
         }
@@ -2460,7 +2464,6 @@ private calculatePathBounds(data: string): Rect {
                 return ch;
         }
     }
-
     private getBackgroundColorHeirachy(element: ElementBox): string {
         let bgColor: string;
         // "empty" is old value used for auto color till v19.2.49. It is maintained for backward compatibility.
@@ -2511,7 +2514,6 @@ private calculatePathBounds(data: string): Rect {
                 for (let i: number = 0; i < splittedText.length; i++) {
                     let currentText: string = splittedText[i];
                     let retrievedText: string = this.spellChecker.manageSpecialCharacters(currentText, undefined, true);
-
                     if (this.spellChecker.ignoreAllItems.indexOf(retrievedText) === -1 && elementBox.ignoreOnceItems.indexOf(retrievedText) === -1) {
                         this.handleUnorderedElements(retrievedText, elementBox, underlineY, i, markindex, i === splittedText.length - 1, beforeIndex);
                         markindex += currentText.length + spaceValue;
@@ -2534,16 +2536,17 @@ private calculatePathBounds(data: string): Rect {
                                 let hasSpellingError: boolean = this.spellChecker.isErrorWord(retrievedText) ? true : false;
                                 let jsonObject: any = JSON.parse('{\"HasSpellingError\":' + hasSpellingError + '}');
                                 this.spellChecker.handleWordByWordSpellCheck(jsonObject, elementBox, left, top, underlineY, baselineAlignment, true);
-                            } else if ((!this.documentHelper.owner.editorModule.triggerPageSpellCheck || this.documentHelper.triggerElementsOnLoading) && (this.documentHelper.triggerSpellCheck || elementBox.isWrongWord)) {
+                            } else if ((!this.documentHelper.owner.editorModule.triggerPageSpellCheck || this.documentHelper.triggerElementsOnLoading) && this.documentHelper.triggerSpellCheck) {
                                 /* eslint-disable @typescript-eslint/no-explicit-any */
                                 this.spellChecker.callSpellChecker(this.spellChecker.languageID, checkText, true, this.spellChecker.allowSpellCheckAndSuggestion).then((data: any) => {
                                     /* eslint-disable @typescript-eslint/no-explicit-any */
                                     let jsonObject: any = JSON.parse(data);
                                     if (!isNullOrUndefined(this.spellChecker)) {
                                         let canUpdate: boolean = (beforeIndex === this.pageIndex || elementBox.isVisible) && (indexInLine === elementBox.indexInOwner) && (indexinParagraph === elementBox.line.paragraph.indexInOwner);
-                                        this.spellChecker.handleWordByWordSpellCheck(jsonObject, elementBox, left, top, underlineY, baselineAlignment, canUpdate);
+                                        this.spellChecker.handleWordByWordSpellCheck(jsonObject, elementBox, left, top, underlineY, baselineAlignment, canUpdate, checkText);
                                     }
                                 });
+                                elementBox.ischangeDetected = false;
                             }
                         }
                     }
@@ -2567,7 +2570,7 @@ private calculatePathBounds(data: string): Rect {
                     let hasSpellingError: boolean = this.spellChecker.isErrorWord(currentText) ? true : false;
                     let jsonObject: any = JSON.parse('{\"HasSpellingError\":' + hasSpellingError + '}');
                     this.spellChecker.handleSplitWordSpellCheck(jsonObject, currentText, elementBox, canUpdate, underlineY, iteration, markIndex, isLastItem);
-                } else if ((!this.documentHelper.owner.editorModule.triggerPageSpellCheck || this.documentHelper.triggerElementsOnLoading) && (this.documentHelper.triggerSpellCheck || elementBox.isWrongWord)) {
+                } else if ((!this.documentHelper.owner.editorModule.triggerPageSpellCheck || this.documentHelper.triggerElementsOnLoading) && this.documentHelper.triggerSpellCheck) {
                     /* eslint-disable @typescript-eslint/no-explicit-any */
                     this.spellChecker.callSpellChecker(this.spellChecker.languageID, currentText, true, this.spellChecker.allowSpellCheckAndSuggestion).then((data: any) => {
                         /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -2576,6 +2579,7 @@ private calculatePathBounds(data: string): Rect {
                             this.spellChecker.handleSplitWordSpellCheck(jsonObject, currentText, elementBox, canUpdate, underlineY, iteration, markIndex, isLastItem);
                         }
                     });
+                    elementBox.ischangeDetected = false;
                 }
             }
         }

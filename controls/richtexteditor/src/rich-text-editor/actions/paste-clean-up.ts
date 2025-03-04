@@ -207,34 +207,13 @@ export class PasteCleanup {
             value = tempDivElem.innerHTML;
             const isValueNotEmpty: boolean = tempDivElem.textContent !== '' || !isNOU(tempDivElem.querySelector('img')) ||
             !isNOU(tempDivElem.querySelector('table'));
-            const imgElements: NodeListOf<HTMLImageElement> = tempDivElem.querySelectorAll('img');
-            const base: string = this.parent.contentModule.getDocument().location.origin;
-            imgElements.forEach((imgElement: HTMLImageElement) => {
-                let imageFileFormat: string;
-                const imgElementSrc: string = imgElement.getAttribute('src');
-                if (!isNullOrUndefined(imgElementSrc) && imgElementSrc !== '') {
-                    if (imgElementSrc.indexOf('base64') > -1 && imgElementSrc.indexOf('data:') > -1) {
-                        imageFileFormat = imgElementSrc.split(';')[0].split('/')[1];
-                    } else {
-                        const parsedUrl: URL = imgElementSrc.indexOf('http') > -1 ? new URL(imgElementSrc) : new URL(imgElementSrc, base);
-                        const path: string = parsedUrl.pathname;
-                        imageFileFormat = path.split('.').pop().toLowerCase();
-                    }
-                    if (!isNullOrUndefined(imageFileFormat) &&
-                        allowedTypes.every((type: string) => imageFileFormat !== type.substring(1).toLowerCase()) &&
-                        imgElementSrc.indexOf('blob') === -1) {
-                        detach(imgElement);
-                    }
-                }
-            });
-            value = tempDivElem.innerHTML;
             this.parent.notify(events.cleanupResizeElements, {
                 value: value,
                 callBack: (currentValue: string) => {
                     value = currentValue;
                 }
             });
-            if (this.parent.pasteCleanupSettings.prompt) {
+            if (this.parent.pasteCleanupSettings.prompt && !e.isPlainPaste) {
                 if (isValueNotEmpty) {
                     (e.args as ClipboardEvent).preventDefault();
                     this.pasteDialog(value, args, isClipboardHTMLDataNull);
@@ -243,7 +222,7 @@ export class PasteCleanup {
             else if (this.parent.pasteCleanupSettings.plainText) {
                 (e.args as ClipboardEvent).preventDefault();
                 this.plainFormatting(value, args, isClipboardHTMLDataNull);
-            } else if (this.parent.pasteCleanupSettings.keepFormat) {
+            } else if (this.parent.pasteCleanupSettings.keepFormat || e.isPlainPaste) {
                 (e.args as ClipboardEvent).preventDefault();
                 this.formatting(value, false, args);
             } else {
@@ -472,7 +451,11 @@ export class PasteCleanup {
         this.parent.inputElement.contentEditable = 'true';
         detach(imgElem);
         if (popupObj) {
-            popupObj.close();
+            this.parent.isBlur = false;
+            popupObj.destroy();
+            if (!isNullOrUndefined(popupObj.element)) {
+                detach(popupObj.element);
+            }
         }
         this.parent.trigger(events.imageUploadFailed, e);
         if (uploadObj && document.body.contains(uploadObj.element)) {
@@ -488,7 +471,7 @@ export class PasteCleanup {
             this.parent.trigger(events.imageUploadSuccess, e, (e: object) => {
                 if (!isNullOrUndefined(this.parent.insertImageSettings.path)) {
                     const url: string = this.parent.insertImageSettings.path + (e as MetaData).file.name;
-                    if (!this.parent.inputElement.contains(imgElem)) {
+                    if (!this.parent.inputElement.contains(imgElem) && imgElem.id) {
                         const imgHtmlElems: NodeListOf<HTMLElement> = this.parent.inputElement.querySelectorAll('#' + imgElem.id);
                         for (let i: number = 0; i < imgHtmlElems.length; i++) {
                             const imgHtmlElem: HTMLElement = imgHtmlElems[i as number];
@@ -497,7 +480,6 @@ export class PasteCleanup {
                                 imgHtmlElem.setAttribute('alt', (e as MetaData).file.name);
                             }
                         }
-
                     } else {
                         (imgElem as HTMLImageElement).src = url;
                         imgElem.setAttribute('alt', (e as MetaData).file.name);
@@ -513,13 +495,22 @@ export class PasteCleanup {
             });
         }
         this.popupCloseTime = setTimeout(() => {
-            popupObj.close();
-            if (!this.parent.inputElement.contains(imgElem)) {
-                const imgHtmlElems: NodeListOf<HTMLElement> = this.parent.inputElement.querySelectorAll('#' + imgElem.id);
-                for (let i: number = 0; i < imgHtmlElems.length; i++) {
-                    const imgHtmlElem: HTMLElement = imgHtmlElems[i as number];
-                    if (imgHtmlElem && imgHtmlElem.style && imgHtmlElem.style.opacity === '0.5') {
-                        (imgHtmlElem as HTMLImageElement).style.opacity = '1';
+            if (popupObj) {
+                this.parent.isBlur = false;
+                popupObj.destroy();
+                if (!isNullOrUndefined(popupObj.element)) {
+                    detach(popupObj.element);
+                }
+            }
+            if (!this.parent.inputElement.contains(imgElem) && (imgElem.id || (imgElem as HTMLImageElement).alt)) {
+                const selector: string | null = imgElem.id ? `#${imgElem.id}` : `[alt="${(imgElem as HTMLImageElement).alt}"]`;
+                if (selector) {
+                    const imgHtmlElems: NodeListOf<HTMLElement> = this.parent.inputElement.querySelectorAll(selector);
+                    for (let i: number = 0; i < imgHtmlElems.length; i++) {
+                        const imgHtmlElem: HTMLElement = imgHtmlElems[i as number];
+                        if (imgHtmlElem && imgHtmlElem.style && imgHtmlElem.style.opacity === '0.5') {
+                            (imgHtmlElem as HTMLImageElement).style.opacity = '1';
+                        }
                     }
                 }
             } else {
@@ -918,6 +909,10 @@ export class PasteCleanup {
             } else if (!tableElement[i as number].classList.contains('e-rte-table')) {
                 tableElement[i as number].classList.add('e-rte-table');
             }
+            if (isNOU(tableElement[i as number].nextElementSibling) && tableElement[i as number].nextSibling &&
+                !tableElement[i as number].nextSibling.textContent.trim()) {
+                detach(tableElement[i as number].nextSibling);
+            }
         }
         return element;
     }
@@ -1275,12 +1270,13 @@ export class PasteCleanup {
 
     private processPictureElement(clipBoardElem: HTMLElement): void {
         const pictureElems: NodeListOf<HTMLElement> = clipBoardElem.querySelectorAll('picture');
+        const base: string = this.parent.contentModule.getDocument().baseURI;
         for (let i: number = 0; i < pictureElems.length; i++) {
             const imgElem: HTMLImageElement | null = pictureElems[i as number].querySelector('img');
             const sourceElems: NodeListOf<HTMLSourceElement> = pictureElems[i as number].querySelectorAll('source');
             if (imgElem && imgElem.getAttribute('src')) {
                 const srcValue: string = (imgElem as HTMLElement).getAttribute('src');
-                const url: URL = new URL(srcValue);
+                const url: URL = srcValue.indexOf('http') > -1 ? new URL(srcValue) : new URL(srcValue, base);
                 for (let j: number = 0; j < sourceElems.length; j++) {
                     const srcset: string | null = sourceElems[j as number].getAttribute('srcset');
                     if (srcset) {

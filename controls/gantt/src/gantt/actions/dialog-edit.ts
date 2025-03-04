@@ -592,6 +592,8 @@ export class DialogEdit {
         this.addedRecord = null;
         this.ganttResources = [];
         this.dialogEditValidationFlag = false;
+        this.isFromAddDialog = false;
+        this.isFromEditDialog = false;
         if (this.dialog && !this.dialogObj.isDestroyed) {
             this.destroyDialogInnerElements();
             this.dialogObj.destroy();
@@ -2295,9 +2297,10 @@ export class DialogEdit {
             if (this.editedRecord.hasChildRecords) {
                 if ((column.field === this.parent.taskFields.endDate &&
                     ((!isNullOrUndefined(this.editedRecord[this.parent.taskFields.manual]) &&
-                    this.editedRecord[this.parent.taskFields.manual] === false) || this.parent.taskMode === 'Auto')) ||
-                    column.field === this.parent.taskFields.duration || column.field === this.parent.taskFields.progress ||
-                    column.field === this.parent.taskFields.work || column.field === this.parent.taskFields.type) {
+                    this.editedRecord[this.parent.taskFields.manual] === false) ||
+                    this.parent.taskMode === 'Auto')) || column.field === this.parent.taskFields.duration ||
+                    column.field === this.parent.taskFields.progress || column.field === this.parent.taskFields.work ||
+                    column.field === this.parent.taskFields.type) {
                     disabled = true;
                 }
             }
@@ -3397,6 +3400,11 @@ export class DialogEdit {
             treeGridObj.grid.endEdit();
         }
         const selectedItems: CObject[] = <CObject[]>this.ganttResources;
+        selectedItems.forEach((item: CObject) => {
+            if (item[this.parent.resourceFields.unit] === null) {
+                item[this.parent.resourceFields.unit] = 0;
+            }
+        });
         if (this.parent.viewType === 'ResourceView' && !isNullOrUndefined(this.rowData.ganttProperties)) {
             if (JSON.stringify(this.ganttResources) !== JSON.stringify(this.rowData.ganttProperties.resourceInfo)) {
                 this.isResourceUpdate = true;
