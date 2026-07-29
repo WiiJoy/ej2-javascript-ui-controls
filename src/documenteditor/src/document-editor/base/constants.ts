@@ -1,0 +1,104 @@
+/** @hidden */
+export const internalZoomFactorChange: string = 'internalZoomFactorChange';
+/** @hidden */
+export const contentChangeEvent: string = 'contentChange';
+/** @hidden */
+export const documentChangeEvent: string = 'documentChange';
+/** @hidden */
+export const selectionChangeEvent: string = 'selectionChange';
+/** @hidden */
+export const zoomFactorChangeEvent: string = 'zoomFactorChange';
+/** @hidden */
+export const beforeFieldFillEvent: string = 'beforeFieldFill';
+/** @hidden */
+export const afterFieldFillEvent: string = 'afterFieldFill';
+/** @hidden */
+export const afterFormFieldFillEvent: string = 'afterFormFieldFill';
+/** @hidden */
+export const beforeFormFieldFillEvent: string = 'beforeFormFieldFill';
+/** @hidden */
+export const serviceFailureEvent: string = 'serviceFailure';
+/** @hidden */
+export const viewChangeEvent: string = 'viewChange';
+/** @hidden */
+export const customContextMenuSelectEvent: string = 'customContextMenuSelect';
+/** @hidden */
+export const customContextMenuBeforeOpenEvent: string = 'customContextMenuBeforeOpen';
+/** @hidden */
+export const contentControlEvent: string = 'contentControl';
+/** @hidden */
+export const beforecontentControlFillEvent: string = 'beforeContentControlFill';
+/** @hidden */
+export const aftercontentControlFillEvent: string = 'afterContentControlFill';
+/** @hidden */
+export const commentBeginEvent: string = 'commentBegin';
+/** @hidden */
+export const commentEndEvent: string = 'commentEnd';
+/** @hidden */
+export const beforeCommentActionEvent: string = 'beforeCommentAction';
+/** @hidden */
+export const commentDeleteEvent: string = 'commentDelete';
+/** @hidden */
+export const revisionActionEvent: string = 'beforeAcceptRejectChanges';
+/** @hidden */
+export const beforePaneSwitchEvent: string = 'beforePaneSwitch';
+/** @hidden */
+export const requestNavigateEvent: string = 'requestNavigate';
+/** @hidden */
+export const actionCompleteEvent: string = 'actionComplete';
+/** @hidden */
+export const trackChangeEvent: string = 'trackChange';
+/** @hidden */
+export const searchResultsChangeEvent: string = 'searchResultsChange';
+/** @hidden */
+export const keyDownEvent: string = 'keyDown';
+/** @hidden */
+export const toolbarClickEvent: string = 'toolbarClick';
+/** @hidden */
+export const beforeFileOpenEvent: string = 'beforeFileOpen';
+/** @hidden */
+export const internalviewChangeEvent: string = 'internalviewChange';
+/** @hidden */
+export const beforeXmlHttpRequestSend: string = 'beforeXmlHttpRequestSend';
+/** @hidden */
+export const protectionTypeChangeEvent: string = 'protectionTypeChange';
+/** @hidden */
+export const internalDocumentEditorSettingsChange: string = 'internalDocumentEditorSettingsChange';
+/** @hidden */
+export const internalStyleCollectionChange: string = 'internalStyleCollectionChange';
+/** @hidden */
+export const internalAsyncPagesVisible: string = 'internalAsyncPagesVisible';
+/** @hidden */
+export const defaultFont: string = 'Times New Roman';
+/** @hidden */
+export const internalAutoResize: string = 'internalAutoResize';
+/** @hidden */
+export const beforeAutoResize: string = 'beforeAutoResize';
+/** @hidden */
+export const trackChanges: string = 'trackChanges';
+/** @hidden */
+export const internalOptionPaneChange: string = 'internalOptionPaneChange';
+/** @hidden */
+export const documentLoadFailedEvent: string = 'documentLoadFailed';
+/**
+ * File menu item click event
+ * @hidden
+ */
+export const fileMenuItemClickEvent: string = 'fileMenuItemClick';
+/**
+ * Triggered before paste operation is executed
+ *
+ * @hidden
+ */
+export const beforePaste: string = 'beforePaste';
+/**
+ * Triggers when pages loads asynchronously in the document editor
+ * @hidden
+ */
+export const asyncPagesVisible: string = 'asyncPagesVisible';
+/**
+ * Triggered when the border style other than solid type is clicked
+ *
+ * @hidden
+ */
+export const unsupportedBorderStyleClick: string = 'unsupportedBorderStyleClick';

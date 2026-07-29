@@ -1,0 +1,7 @@
+export * from './image-decoder';
+export * from './jbig2-image';
+export * from './jpeg-decoder';
+export * from './pdf-bitmap';
+export * from './pdf-fax-decoder';
+export * from './pdf-image';
+export * from './png-decoder';

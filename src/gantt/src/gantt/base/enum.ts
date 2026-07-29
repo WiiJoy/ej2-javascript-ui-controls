@@ -1,0 +1,619 @@
+/**
+ * Defines the duration unit for the entire project.
+ *
+ * ```props
+ * * Minute  - Defines the unit of duration as minutes.
+ * * Hour    - Defines the unit of duration as hours.
+ * * Day     - Defines the unit of duration as days.
+ * ```
+ */
+export type DurationUnit =
+    'Minute' |
+    'Hour' |
+    'Day';
+
+/**
+ * Defines grid lines in the Gantt chart.
+ *
+ * ```props
+ * * Horizontal - Defines horizontal lines.
+ * * Vertical   - Defines vertical lines.
+ * * Both       - Defines both horizontal and vertical lines.
+ * * None       - Defines no lines.
+ * ```
+ */
+export type GridLine =
+    'Horizontal' |
+    'Vertical' |
+    'Both' |
+    'None';
+
+/**
+ * Defines the day of the week.
+ *
+ * ```props
+ * * Monday    - Defines the day as Monday.
+ * * Tuesday   - Defines the day as Tuesday.
+ * * Wednesday - Defines the day as Wednesday.
+ * * Thursday  - Defines the day as Thursday.
+ * * Friday    - Defines the day as Friday.
+ * * Saturday  - Defines the day as Saturday.
+ * * Sunday    - Defines the day as Sunday.
+ * ```
+ */
+export type DayOfWeek =
+    'Monday' |
+    'Tuesday' |
+    'Wednesday' |
+    'Thursday' |
+    'Friday' |
+    'Saturday' |
+    'Sunday';
+
+/**
+ * To define toolbar items in Gantt
+ * ```props
+ * * Add :- Add new record.
+ * * Delete :- Delete selected record.
+ * * Update :- Update edited record.
+ * * Cancel :- Cancel the edited state.
+ * * Edit :- Edit the selected record.
+ * * Search :- Searches the grid records by given key.
+ * * ExpandAll :- Expand all the parents.
+ * * CollapseAll :- Collapse all the parents.
+ * * PrevTimeSpan :- Move HScroll to prevTimeSpan.
+ * * NextTimeSpan :- Move HScroll to nextTimeSpan.
+ * * ZoomIn :- To perform Zoom in action on Gantt timeline.
+ * * ZoomOut :- To perform zoom out action on Gantt timeline.
+ * * ZoomToFit :- To show all project task in available chart width.
+ * * ExcelExport :- To export Gantt in excel sheet.
+ * * CsvExport :- To export Gantt in CSV.
+ * * PdfExport :- To export Gantt in PDF.
+ * * Indent :- To indent a selected record.
+ * * Outdent :- To outdent a selected record.
+ * * CriticalPath :- To enable critical path.
+ * * Undo :- To enable undo action.
+ * * Redo :- To enable redo action.
+ * ```
+ */
+export type ToolbarItem =
+    'Add' |
+    'Delete' |
+    'Update' |
+    'Cancel' |
+    'Edit' |
+    'Search' |
+    'ExpandAll' |
+    'CollapseAll' |
+    'PrevTimeSpan' |
+    'NextTimeSpan' |
+    'ZoomIn'|
+    'ZoomOut'|
+    'ZoomToFit' |
+    'ExcelExport' |
+    'CsvExport' |
+    'PdfExport' |
+    'Indent' |
+    'Outdent' |
+    'CriticalPath'|
+    'Undo'|
+    'Redo';
+
+/**
+ * Defines the Undo Redo actions. They are
+ * ```props
+ * * Sorting :- Define the sorting action in undo/redo.
+ * * ColumnReorder :- Define the columnReorder action in undo/redo.
+ * * ColumnResize :- Define the columnResize action in undo/redo.
+ * * Delete :- Define the Delete action in undo/redo.
+ * * Edit :- Define the Edit action in undo/redo.
+ * * Add :- Define the Add action in undo/redo.
+ * * Search :- Define the search action in undo/redo.
+ * * Filtering :- Define the Filtering action in undo/redo.
+ * * ZoomIn :- Define the ZoomIn action in undo/redo.
+ * * ZoomOut :- Define the ZoomOut action in undo/redo.
+ * * ZoomToFit :- Define the ZoomToFit action in undo/redo.
+ * * ColumnState :- Define the ColumnState action in undo/redo.
+ * * PreviousTimeSpan :- Define the PreviousTimeSpan action in undo/redo.
+ * * NextTimeSpan :- Define the NextTimeSpan action in undo/redo.
+ * * Indent :- Define the Indent action in undo/redo.
+ * * Outdent :- Define the Outdent action in undo/redo.
+ * * RowDragAndDrop :- Define the RowDragAndDrop action in undo/redo.
+ * * TaskbarDragAndDrop :- Define the TaskbarDragAndDrop action in undo/redo.
+ * ```
+ */
+export type GanttAction =
+'Sorting' |
+'ColumnReorder' |
+'ColumnResize' |
+'Delete' |
+'Edit' |
+'Add' |
+'Search' |
+'Filtering' |
+'ZoomIn' |
+'ZoomOut' |
+'ZoomToFit' |
+'ColumnState' |
+'PreviousTimeSpan' |
+'NextTimeSpan' |
+'Indent' |
+'Outdent' |
+'RowDragAndDrop' |
+'TaskbarDragAndDrop';
+
+/**
+ * Defines the schedule header mode. They are
+ * ```props
+ * * None :- Define the default mode header.
+ * * Week :- Define the week mode header.
+ * * Day :- Define the day mode header.
+ * * Hour :- Define the hour mode header.
+ * * Month :- Define the month mode header.
+ * * Year :- Define the year mode header.
+ * * Minutes :- Define the minutes mode header.
+ * ```
+ */
+export type TimelineViewMode =
+    'None' |
+    'Week' |
+    'Day' |
+    'Hour' |
+    'Month' |
+    'Year' |
+    'Minutes';
+
+/**
+ * Defines modes of editing.
+ * ```props
+ * * Auto :- Defines Cell editing in TreeGrid and dialog in chart side.
+ * * Dialog :- Defines EditMode as Dialog.
+ * ```
+ */
+export type EditMode =
+    'Auto' |
+    'Dialog';
+
+/**
+ * Defines the default items of the column menu.
+ * ```props
+ * * SortAscending - Sorts the current column in ascending order.
+ * * SortDescending - Sorts the current column in descending order.
+ * * AutoFitAll - Auto-fits the size of all columns.
+ * * AutoFit - Auto-fits the current column.
+ * * ColumnChooser - Shows the column chooser.
+ * * Filter - Shows the filter popup.
+ * ```
+ */
+export type ColumnMenuItem =
+    'SortAscending' |
+    'SortDescending' |
+    'AutoFit' |
+    'AutoFitAll' |
+    'ColumnChooser' |
+    'Filter';
+
+/**
+ * Defines the types of tabs available in the Add and Edit dialogs.
+ * ```props
+ * * `General`: Renders the tab for general task fields.
+ * * `Dependency`: Renders the tab for managing task dependencies.
+ * * `Resources`: Renders the tab for assigning resources.
+ * * `Notes`: Renders the tab for adding task notes.
+ * * `Custom`: Renders the tab for editing custom column values.
+ * * `Segments`: Renders the tab for managing task segments.
+ * * `Advanced`: Renders the tab for advanced settings like task constraints.
+ * ```
+ */
+export type DialogFieldType =
+    'General' |
+    'Dependency' |
+    'Resources' |
+    'Notes' |
+    'Custom' |
+    'Segments'|
+    'Advanced';
+
+/**
+ * Specifies the filter dialog style in Gantt Chart.
+ * ```props
+ * * Menu :- Defines filter type as menu.
+ * * Excel :- Specifies the filtersetting type as excel.
+ * ```
+ */
+export type FilterType =
+    'Menu' |
+    'Excel';
+
+/**
+ * To define hierarchy mode on filter action
+ * ```props
+ * * Parent :- Shows the filtered record with parent record.
+ * * Child :- Shows the filtered record with child record.
+ * * Both :- Shows the filtered record with both parent and child record.
+ * * None :- Shows only filtered record.
+ * ```
+ */
+export type FilterHierarchyMode =
+    'Parent' |
+    'Child' |
+    'Both' |
+    'None';
+/**
+ * To define hierarchy mode on search action
+ * ```props
+ * * Parent :- Shows the filtered record with parent record.
+ * * Child :- Shows the filtered record with child record.
+ * * Both :- Shows the filtered record with both parent and child record.
+ * * None :- Shows only filtered record.
+ * ```
+ */
+export type SearchHierarchyMode =
+    'Parent' |
+    'Child' |
+    'Both' |
+    'None';
+
+/**
+ * Specifies the initial view of the Gantt chart component.
+ * ```props
+ * * Default :- Displays both the grid and the chart views side-by-side.
+ * * Grid :- Displays only the grid view.
+ * * Chart :- Displays only the chart view.
+ * ```
+ */
+export type SplitterView =
+    'Default' |
+    'Grid' |
+    'Chart';
+/**
+ * Defines the target position for adding new rows in the GanttChart.
+ * The available positions are:
+ * * `Top`: Adds a new row at the top of all rows.
+ * * `Bottom`: Adds a new row at the bottom of all rows.
+ * * `Above`: Adds a new row above the currently selected row.
+ * * `Below`: Adds a new row below the currently selected row.
+ * * `Child`: Adds a new row as a child to the currently selected row.
+ */
+export type RowPosition =
+    'Top' |
+    'Bottom' |
+    'Above' |
+    'Below' |
+    'Child';
+
+/**
+ * Defines directions of Sorting. They are
+ * ```props
+ * * Ascending :- Defines SortDirection as Ascending.
+ * * Descending :- Defines SortDirection as Descending.
+ * ```
+ */
+export type SortDirection =
+    'Ascending' |
+    'Descending';
+
+/**
+ * Defines predefined contextmenu items.
+ *
+ * ```props
+ * * AutoFitAll :- Defines Auto fit the size of all columns.
+ * * AutoFit :- Defines Auto fit the current column.
+ * * SortAscending :- Defines SortDirection as Ascending.
+ * * SortDescending :- Defines SortDirection as Descending.
+ * * TaskInformation :- Defines the Task details.
+ * * Add :- Defines the new record on add action.
+ * * Save :- Defines the save the modified values.
+ * * Cancel :- Defines the cancel the modified values.
+ * * DeleteTask :- Defines the delete task.
+ * * DeleteDependency :- Defines the delete dependency task.
+ * * Convert :- Defines the convert to task or milestone.
+ * * Split Task :- Defines the split a task or segment into two segmentse.
+ * * Merge Task :- Defines the merge two segments into one segment.
+ * ```
+ *
+ */
+
+export type ContextMenuItem =
+    'AutoFitAll' |
+    'AutoFit' |
+    'SortAscending' |
+    'SortDescending' |
+    'TaskInformation' |
+    'Add' |
+    'Save' |
+    'Cancel' |
+    'DeleteTask' |
+    'DeleteDependency' |
+    'Convert' |
+    'Split Task' |
+    'Merge Task';
+
+/**
+ * Defines contextmenu types.
+ *
+ * ```props
+ * * Header :- Defines the header type context menu.
+ * * Content :- Defines the content type context menu.
+ * ```
+ *
+ * @hidden
+ */
+
+export type ContextMenuType =
+    'Header' |
+    'Content';
+
+/**
+ * To define work unit for whole project
+ * ```props
+ * * Minute :- To define unit value of work as minute.
+ * * Hour :- To define unit value of work as hour.
+ * * Day :- To define unit value of work as day.
+ * ```
+ */
+export type WorkUnit =
+    'Minute' |
+    'Hour' |
+    'Day';
+
+/**
+ * To define task type for task
+ * ```props
+ * * FixedUnit :- To define task type as fixedUnit.
+ * * FixedWork :- To define task type as fixedWork.
+ * * FixedDuration :- To define task type as fixedDuration.
+ * ```
+ */
+export type TaskType =
+    'FixedUnit' |
+    'FixedWork' |
+    'FixedDuration';
+
+/**
+ * Defines PDF page Size.
+ * ```props
+ * * Letter :- Letter size
+ * * Note :- Note size
+ * * Legal :- Legal size
+ * * A0 :- A0 size
+ * * A1 :- A1 size
+ * * A2 :- A2 size
+ * * A3 :- A3 size
+ * * A4 :- A4 size
+ * * A5 :- A5 size
+ * * A6 :- A6 size
+ * * A7 :- A7 size
+ * * A8 :- A8 size
+ * * A9 :- A9 size
+ * * B0 :- B0 size
+ * * B1 :- B1 size
+ * * B2 :- B2 size
+ * * B3 :- B3 size
+ * * B4 :- B4 size
+ * * B5 :- B5 size
+ * * Archa :- Arch A size
+ * * Archb :- Arch B size
+ * * Archc :- Arch C size
+ * * Archd :- Arch D size
+ * * Arche :- Arch E size
+ * * Flsa :- Flsa size
+ * * HalfLetter :- HalfLetter size
+ * * Letter11x17 :- Letter11x17 size
+ * * Ledger :- Ledger size
+ * ```
+ */
+export type PdfPageSize =
+    'Letter' |
+    'Note' |
+    'Legal' |
+    'A0' |
+    'A1' |
+    'A2' |
+    'A3' |
+    'A4' |
+    'A5' |
+    'A6' |
+    'A7' |
+    'A8' |
+    'A9' |
+    'B0' |
+    'B1' |
+    'B2' |
+    'B3' |
+    'B4' |
+    'B5' |
+    'Archa' |
+    'Archb' |
+    'Archc' |
+    'Archd' |
+    'Arche' |
+    'Flsa' |
+    'HalfLetter' |
+    'Letter11x17' |
+    'Ledger';
+
+/**
+ * Defines the page orientation for PDF export.
+ * ```props
+ * * Landscape :-Sets the page to landscape orientation.
+ * * Portrait :- Sets the page to portrait orientation.
+ * ```
+ */
+export type PageOrientation =
+    'Landscape' |
+    'Portrait';
+
+/**
+ * Specifies the stroke dash style for PDF export in Gantt.
+ * ```props
+ * * Solid :- A solid line.
+ * * Dash :- A dashed line.
+ * * Dot :- A dotted line.
+ * * DashDot :- A line with a dash-dot pattern.
+ * * DashDotDot :- A line with a dash-dot-dot pattern.
+ * ```
+ */
+export type PdfDashStyle =
+    'Solid' |
+    'Dash' |
+    'Dot' |
+    'DashDot' |
+    'DashDotDot';
+
+/**
+ * Defines PDF horizontal alignment.
+ * ```props
+ * * Left :- Aligns PDF content to left.
+ * * Right :- Aligns PDF content to right.
+ * * Center :- Aligns PDF content to center.
+ * * Justify :- Aligns PDF content to justify.
+ * ```
+ */
+export type PdfHAlign =
+    'Left' |
+    'Right' |
+    'Center' |
+    'Justify';
+
+/**
+ * Defines PDF vertical alignment.
+ * ```props
+ * * Top :- Aligns PDF content to top.
+ * * Bottom :- Aligns PDF content to bottom.
+ * * Middle :- Aligns PDF content to middle.
+ * ```
+ */
+export type PdfVAlign =
+    'Top' |
+    'Bottom' |
+    'Middle';
+
+/**
+ * Defines Export Type.
+ * ```props
+ * * CurrentViewData :- Exports the data of the current view.
+ * * AllData :- Exports all data from the Gantt.
+ * ```
+ */
+export type ExportType =
+    'CurrentViewData' |
+    'AllData';
+
+/**
+ * Defines the theme for PDF exporting in Gantt chart.
+ * ```props
+ * * Material    :- Renders the export using the Material theme.
+ * * Fabric      :- Renders the export using the Fabric theme.
+ * * Bootstrap   :- Renders the export using the Bootstrap theme.
+ * * Bootstrap 4 :- Renders the export using the Bootstrap 4 theme.
+ * ```
+ */
+export type PdfTheme =
+    'Material' |
+    'Fabric' |
+    'Bootstrap' |
+    'Bootstrap 4';
+
+/**
+ * @hidden
+ */
+export type CObject =
+    { [key: string]: Object; };
+/**
+ * To define schedule mode of Gantt
+ * ```props
+ * * Auto :- Tasks are displayed in auto scheduled mode.
+ * * Manual :- Tasks are displayed in manual scheduled mode.
+ * * Custom :- Tasks are displayed in custom scheduled mode.
+ * ```
+ */
+export type ScheduleMode =
+'Auto' |
+'Manual' |
+'Custom';
+/*
+* To define view type of the Gantt
+* ```props
+ * * ProjectView :- Define project view type Gantt.
+ * * ResourceView :- Define resource view type Gantt.
+ * ```
+*/
+export type ViewType =
+   'ProjectView' |
+   'ResourceView';
+
+/**
+ * Defines PDF ContentType.
+ * ```props
+ * * Image :- PDF content is Image type
+ * * Line :- PDF content is Line type
+ * * PageNumber :- PDF content is PageNumber type
+ * * Text :- PDF content is Text type
+ * ```
+ */
+export type ContentType =
+'Image' |
+'Line' |
+'PageNumber' |
+'Text';
+
+/**
+ * Defines PDF PageNumber Type.
+ * ```props
+ * * LowerLatin :- LowerCase Latin pageNumber
+ * * LowerRoman :- LowerCase Roman pageNumber
+ * * UpperLatin :- UpperCase Latin pageNumber
+ * * UpperRoman :- UpperCase Roman pageNumber
+ * * Numeric :- Numeric pageNumber
+ * * Arabic :- Arabic pageNumber
+ * ```
+ */
+export type PdfPageNumberType =
+    'LowerLatin' |
+    'LowerRoman' |
+    'UpperLatin' |
+    'UpperRoman' |
+    'Numeric' |
+    'Arabic';
+
+/**
+ * Defines the constraint types used for task scheduling.
+ *
+ * Available values:
+ * - `0`: AsSoonAsPossible (ASAP) – Task starts as early as possible. Default for auto-scheduled tasks.
+ * - `1`: AsLateAsPossible (ALAP) – Task finishes as late as possible without delaying dependents.
+ * - `2`: MustStartOn (MSO) – Task must start on the specified date.
+ * - `3`: MustFinishOn (MFO) – Task must finish on the specified date.
+ * - `4`: StartNoEarlierThan (SNET) – Task cannot start before the specified date.
+ * - `5`: StartNoLaterThan (SNLT) – Task must start on or before the specified date.
+ * - `6`: FinishNoEarlierThan (FNET) – Task cannot finish before the specified date.
+ * - `7`: FinishNoLaterThan (FNLT) – Task must finish on or before the specified date.
+ */
+export enum ConstraintType {
+    AsSoonAsPossible = 0,
+    AsLateAsPossible = 1,
+    MustStartOn = 2,
+    MustFinishOn = 3,
+    StartNoEarlierThan = 4,
+    StartNoLaterThan = 5,
+    FinishNoEarlierThan = 6,
+    FinishNoLaterThan = 7
+}
+
+/**
+ * Defines the types of constraint violations in task scheduling.
+ * ```props
+ * * MustStartOn       :- Task startDate is not equal to the constraintDate.
+ * * MustFinishOn      :- Task finishDate (startDate + duration - 1) is not equal to the constraintDate.
+ * * StartNoLaterThan  :- Task startDate is later than the constraintDate.
+ * * FinishNoLaterThan :- Task finishDate is later than the constraintDate.
+ * * PredecessorLink   :- Task startDate violates the predecessor's endDate and offset.
+ * ```
+ */
+export type ViolationType =
+  | 'MustStartOn'
+  | 'MustFinishOn'
+  | 'StartNoLaterThan'
+  | 'FinishNoLaterThan'
+  | 'PredecessorLink';
